@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using BaseLib.Data;
-using BaseLib.Param;
-using BaseLib.Util;
+using BaseLibS.Data;
+using BaseLibS.Num;
+using BaseLibS.Param;
+using BaseLibS.Util;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
@@ -20,32 +19,65 @@ namespace PerseusPluginLib.Basic{
 	}
 
 	public class CombineByIdentifiersProcessing : IMatrixProcessing{
-		public bool HasButton { get { return false; } }
-		public Bitmap DisplayImage { get { return null; } }
-		public string HelpDescription { get { return ""; } }
-		public string HelpOutput { get { return ""; } }
-		public string[] HelpSupplTables { get { return new string[0]; } }
-		public int NumSupplTables { get { return 0; } }
-		public string Name { get { return "Combine rows by identifiers"; } }
-		public string Heading { get { return "Basic"; } }
-		public bool IsActive { get { return false; } }
-		public float DisplayOrder { get { return 20; } }
-		public DocumentType HelpDescriptionType { get { return DocumentType.PlainText; } }
-		public DocumentType HelpOutputType { get { return DocumentType.PlainText; } }
-		public DocumentType[] HelpSupplTablesType { get { return new DocumentType[0]; } }
-		public string[] HelpDocuments { get { return new string[0]; } }
-		public DocumentType[] HelpDocumentTypes { get { return new DocumentType[0]; } }
-		public int NumDocuments { get { return 0; } }
+		public bool HasButton => false;
+		public Bitmap DisplayImage => null;
 
-		public int GetMaxThreads(Parameters parameters) {
+		public string Description
+			=>
+				"Collapses multiple rows with same identifiers in the specified identifier column " +
+				"into a single row. For numeric rows it can be specified how muliple values should be summarized, e.g. by mean or median."
+			;
+
+		public string HelpOutput => "Matrix with respective rows collapsed.";
+		public string[] HelpSupplTables => new string[0];
+		public int NumSupplTables => 0;
+		public string Name => "Combine rows by identifiers";
+		public string Heading => "Basic";
+		public bool IsActive => true;
+		public float DisplayRank => 20;
+		public string[] HelpDocuments => new string[0];
+		public int NumDocuments => 0;
+
+		public int GetMaxThreads(Parameters parameters){
 			return 1;
+		}
+
+		public string Url
+			=> "http://coxdocs.org/doku.php?id=perseus:user:activities:MatrixProcessing:Basic:CombineByIdentifiersProcessing";
+
+		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
+			string[] averageTypeChoice = new[]{"Sum", "Mean", "Median", "Maximum", "Minimum"};
+			List<Parameter> parameters = new List<Parameter>{
+				new SingleChoiceParam("ID column"){
+					Values = mdata.StringColumnNames,
+					Help = "Column containing IDs that are going to be clustered."
+				},
+				new BoolParam("Keep rows without ID"){Help = "Rows without IDs are kept, each as a separate row."},
+				new SingleChoiceParam("Average type for expression columns"){
+					Values = averageTypeChoice,
+					Value = 2,
+					Help =
+						"Here it is specified how numeric values should be combined for expression columns " +
+						"in those cases where multiple rows are collapsed."
+				}
+			};
+			foreach (string n in mdata.NumericColumnNames){
+				parameters.Add(new SingleChoiceParam("Average type for " + n){
+					Values = averageTypeChoice,
+					Value = 2,
+					Help =
+						"Here it is specified how numeric values should be combined for the specific numeric column " +
+						"in those cases where multiple rows are collapsed."
+				});
+			}
+			return new Parameters(parameters);
 		}
 
 		public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables,
 			ref IDocumentData[] documents, ProcessInfo processInfo){
-			bool keepEmpty = param.GetBoolParam("Keep rows without ID").Value;
-			AverageType atype = GetAverageType(param.GetSingleChoiceParam("Average type for expression columns").Value);
-			string[] ids2 = mdata.StringColumns[param.GetSingleChoiceParam("ID column").Value];
+			bool keepEmpty = param.GetParam<bool>("Keep rows without ID").Value;
+			AverageType atype = GetAverageType(param.GetParam<int>("Average type for expression columns").Value);
+			string[] ids2 = mdata.StringColumns[param.GetParam<int>("ID column").Value];
 			string[][] ids = SplitIds(ids2);
 			int[] present;
 			int[] absent;
@@ -60,19 +92,19 @@ namespace PerseusPluginLib.Basic{
 				rowInds = ProlongRowInds(rowInds, absent);
 			}
 			int nrows = rowInds.Length;
-			int ncols = mdata.ExpressionColumnCount;
-			float[,] expVals = new float[nrows,ncols];
+			int ncols = mdata.ColumnCount;
+			float[,] expVals = new float[nrows, ncols];
 			for (int j = 0; j < ncols; j++){
-				float[] c = mdata.GetExpressionColumn(j);
+				double[] c = ArrayUtils.ToDoubles(mdata.Values.GetColumn(j));
 				for (int i = 0; i < nrows; i++){
-					float[] d = ArrayUtils.SubArray(c, rowInds[i]);
-					expVals[i, j] = Average(d, atype);
+					double[] d = ArrayUtils.SubArray(c, rowInds[i]);
+					expVals[i, j] = (float) Average(d, atype);
 				}
 			}
-			mdata.ExpressionValues = expVals;
+			mdata.Values.Set(expVals);
 			for (int i = 0; i < mdata.NumericColumnCount; i++){
 				string name = mdata.NumericColumnNames[i];
-				AverageType atype1 = GetAverageType(param.GetSingleChoiceParam("Average type for " + name).Value);
+				AverageType atype1 = GetAverageType(param.GetParam<int>("Average type for " + name).Value);
 				double[] c = mdata.NumericColumns[i];
 				double[] newCol = new double[nrows];
 				for (int k = 0; k < nrows; k++){
@@ -88,7 +120,7 @@ namespace PerseusPluginLib.Basic{
 					string[][] d = ArrayUtils.SubArray(c, rowInds[k]);
 					newCol[k] = Average(d);
 				}
-				mdata.SetCategoryColumnAt(newCol,i);
+				mdata.SetCategoryColumnAt(newCol, i);
 			}
 			for (int i = 0; i < mdata.StringColumnCount; i++){
 				string[] c = mdata.StringColumns[i];
@@ -160,32 +192,6 @@ namespace PerseusPluginLib.Basic{
 					return ArrayUtils.Min(g);
 				case AverageType.Sum:
 					return ArrayUtils.Sum(g);
-				default:
-					throw new Exception("Never get here.");
-			}
-		}
-
-		private static float Average(IEnumerable<float> c, AverageType atype){
-			List<float> g = new List<float>();
-			foreach (float f in c){
-				if (!float.IsNaN(f) && !float.IsInfinity(f)){
-					g.Add(f);
-				}
-			}
-			if (g.Count == 0){
-				return float.NaN;
-			}
-			switch (atype){
-				case AverageType.Mean:
-					return (float) ArrayUtils.Mean(g);
-				case AverageType.Maximum:
-					return ArrayUtils.Max(g);
-				case AverageType.Median:
-					return ArrayUtils.Median(g);
-				case AverageType.Minimum:
-					return ArrayUtils.Min(g);
-				case AverageType.Sum:
-					return (float) ArrayUtils.Sum(g);
 				default:
 					throw new Exception("Never get here.");
 			}
@@ -316,20 +322,6 @@ namespace PerseusPluginLib.Basic{
 				default:
 					throw new Exception("Never get here.");
 			}
-		}
-
-		public Parameters GetParameters(IMatrixData mdata, ref string errorString) {
-			string[] averageTypeChoice = new[]{"Sum", "Mean", "Median", "Maximum", "Minimum"};
-			List<Parameter> parameters = new List<Parameter>{
-				new SingleChoiceParam("ID column")
-				{Values = mdata.StringColumnNames, Help = "Column containing IDs that are going to be clustered."},
-				new BoolParam("Keep rows without ID"),
-				new SingleChoiceParam("Average type for expression columns"){Values = averageTypeChoice, Value = 2}
-			};
-			foreach (string n in mdata.NumericColumnNames){
-				parameters.Add(new SingleChoiceParam("Average type for " + n) { Values = averageTypeChoice, Value = 2 });
-			}
-			return new Parameters(parameters);
 		}
 	}
 }

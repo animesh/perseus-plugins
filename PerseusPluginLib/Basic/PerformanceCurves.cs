@@ -1,32 +1,27 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using BaseLib.Num;
-using BaseLib.Param;
-using BaseLib.Util;
+using BaseLibS.Num;
+using BaseLibS.Param;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
 
 namespace PerseusPluginLib.Basic{
 	public class PerformanceCurves : IMatrixProcessing{
-		public bool HasButton { get { return false; } }
-		public Bitmap DisplayImage { get { return null; } }
-		public string Name { get { return "Performance curves"; } }
-		public string HelpOutput { get { return ""; } }
-		public string[] HelpSupplTables { get { return new string[0]; } }
-		public int NumSupplTables { get { return 0; } }
-		public string HelpDescription { get { return ""; } }
-		public bool IsActive { get { return true; } }
-		public float DisplayOrder { get { return 10; } }
-		public DocumentType HelpDescriptionType { get { return DocumentType.PlainText; } }
-		public DocumentType HelpOutputType { get { return DocumentType.PlainText; } }
-		public DocumentType[] HelpSupplTablesType { get { return new DocumentType[0]; } }
-		public string[] HelpDocuments { get { return new string[0]; } }
-		public DocumentType[] HelpDocumentTypes { get { return new DocumentType[0]; } }
-		public int NumDocuments { get { return 0; } }
+		public bool HasButton => false;
+		public Bitmap DisplayImage => null;
+		public string Name => "Performance curves";
+		public string Heading => "Basic";
+		public string HelpOutput => "";
+		public string[] HelpSupplTables => new string[0];
+		public int NumSupplTables => 0;
+		public string Description => "Calculation of predictive performance measures like precision-recall or ROC curves.";
+		public bool IsActive => true;
+		public float DisplayRank => 10;
+		public string[] HelpDocuments => new string[0];
+		public int NumDocuments => 0;
+		public string Url => "http://coxdocs.org/doku.php?id=perseus:user:activities:MatrixProcessing:Basic:PerformanceCurves";
 
 		public int GetMaxThreads(Parameters parameters) {
 			return 1;
@@ -34,16 +29,16 @@ namespace PerseusPluginLib.Basic{
 
 		public void ProcessData(IMatrixData data, Parameters param, ref IMatrixData[] supplTables,
 			ref IDocumentData[] documents, ProcessInfo processInfo){
-			bool falseAreIndicated = param.GetSingleChoiceParam("Indicated are").Value == 0;
-			int catCol = param.GetSingleChoiceParam("In column").Value;
-			string word = param.GetStringParam("Indicator").Value;
-			int[] scoreColumns = param.GetMultiChoiceParam("Scores").Value;
+				bool falseAreIndicated = param.GetParam<int>("Indicated are").Value == 0;
+				int catCol = param.GetParam<int>("In column").Value;
+			string word = param.GetParam<string>("Indicator").Value;
+			int[] scoreColumns = param.GetParam<int[]>("Scores").Value;
 			if (scoreColumns.Length == 0){
 				processInfo.ErrString = "Please specify at least one column with scores.";
 				return;
 			}
-			bool largeIsGood = param.GetBoolParam("Large values are good").Value;
-			int[] showColumns = param.GetMultiChoiceParam("Display quantity").Value;
+			bool largeIsGood = param.GetParam<bool>("Large values are good").Value;
+			int[] showColumns = param.GetParam<int[]>("Display quantity").Value;
 			if (showColumns.Length == 0){
 				processInfo.ErrString = "Please select at least one quantity to display";
 				return;
@@ -54,14 +49,16 @@ namespace PerseusPluginLib.Basic{
 			foreach (int scoreColumn in scoreColumns){
 				double[] vals = scoreColumn < data.NumericColumnCount
 					? data.NumericColumns[scoreColumn]
-					: ArrayUtils.ToDoubles(data.GetExpressionColumn(scoreColumn - data.NumericColumnCount));
+					: ArrayUtils.ToDoubles(data.Values.GetColumn(scoreColumn - data.NumericColumnCount));
 				string name = scoreColumn < data.NumericColumnCount
-					? data.NumericColumnNames[scoreColumn] : data.ExpressionColumnNames[scoreColumn - data.NumericColumnCount];
+					? data.NumericColumnNames[scoreColumn] : data.ColumnNames[scoreColumn - data.NumericColumnCount];
 				int[] order = GetOrder(vals, largeIsGood);
 				CalcCurve(ArrayUtils.SubArray(indCol, order), showColumns, name, expCols, expColNames);
 			}
 			float[,] expData = ToMatrix(expCols);
-			data.SetData(data.Name, expColNames, expData, new List<string>(), new List<string[]>(), new List<string>(),
+			data.ColumnNames = expColNames;
+			data.Values.Set(expData);
+			data.SetAnnotationColumns( new List<string>(), new List<string[]>(), new List<string>(),
 				new List<string[][]>(), new List<string>(), new List<double[]>(), new List<string>(), new List<double[][]>());
 		}
 
@@ -185,17 +182,36 @@ namespace PerseusPluginLib.Basic{
 		}
 
 		public Parameters GetParameters(IMatrixData mdata, ref string errorString) {
-			string[] numChoice = ArrayUtils.Concat(mdata.NumericColumnNames, mdata.ExpressionColumnNames);
+			string[] numChoice = ArrayUtils.Concat(mdata.NumericColumnNames, mdata.ColumnNames);
 			return
 				new Parameters(new Parameter[]{
-					new SingleChoiceParam("Indicated are"){Values = new[]{"False", "True"}},
-					new SingleChoiceParam("In column"){Values = mdata.CategoryColumnNames}, new StringParam("Indicator"){Value = "+"},
-					new MultiChoiceParam("Scores"){Value = new[]{0}, Values = numChoice},
-					new BoolParam("Large values are good"){Value = true},
-					new MultiChoiceParam("Display quantity"){Values = PerformanceColumnType.AllTypeNames}
+					new SingleChoiceParam("Indicated are"){
+					        Values = new[]{"False", "True"},
+                            Help="Specify whether rows containing the 'Indicator' are true or false."
+					    },
+					new SingleChoiceParam("In column"){
+					        Values = mdata.CategoryColumnNames,
+                            Help="The categorical column containing the 'Indicator'."
+					    }, 
+                    new StringParam("Indicator"){
+                            Value = "+",
+                            Help="The string that will be searched in the above specified categorical column to define which rows are right or wrong predicted."
+                        },
+					new MultiChoiceParam("Scores"){
+					        Value = new[]{0}, Values = numChoice,
+                            Help="The expression columns that contain the classification scores by which the rows will be ranked."
+					    },
+					new BoolParam("Large values are good"){
+					        Value = true,
+                            Help="If checked, large score values are considered good, otherwise the lower the score value the better."
+					    },
+					new MultiChoiceParam("Display quantity"){
+					        Values = PerformanceColumnType.AllTypeNames,
+                            Help="The quantities that should be calculated."
+					    }
 				});
 		}
 
-		public string Heading { get { return "Basic"; } }
+		
 	}
 }

@@ -1,81 +1,68 @@
 using System;
-using System.Windows;
-using BaseLib.Param;
-using BaseLib.Util;
+using System.Collections.Generic;
+using BaseLibS.Num;
+using BaseLibS.Param;
+using BaseLibS.Util;
 
 namespace PerseusPluginLib.Load{
 	[Serializable]
-	public class PerseusLoadMatrixParam : Parameter{
+	public class PerseusLoadMatrixParam : Parameter<string[]>{
 		public string Filter { get; set; }
-		public string[] Value { get; set; }
-		public string[] Default { get; private set; }
+		[NonSerialized] private PerseusLoadMatrixControl control;
+		public IList<Parameters[]> FilterParameterValues { get; set; }
 
 		public PerseusLoadMatrixParam(string name) : base(name){
-			Value = new string[7];
-			for (int i = 0; i < 7; i++){
+			Value = new string[8];
+			Default = new string[8];
+			for (int i = 0; i < 8; i++){
 				Value[i] = "";
+				Default[i] = "";
 			}
-			Default = Value;
 			Filter = null;
 		}
 
-		public override string StringValue { get { return StringUtils.Concat(";", Value); } set { Value = value.Split(';'); } }
-		public string[] Value2{
-			get{
-				SetValueFromControl();
-				return Value;
-			}
+		public override string StringValue{
+			get { return StringUtils.Concat(";", Value); }
+			set { Value = value.Split(';'); }
 		}
-		public override bool IsDropTarget { get { return true; } }
+
+		public override bool IsDropTarget => true;
 
 		public override void Drop(string x){
 			UpdateFile(x);
 		}
 
-		public override void ResetValue(){
-			Value = Default;
-		}
-
-		public override void ResetDefault(){
-			Default = Value;
-		}
-
-		public override bool IsModified { get { return !Value.Equals(Default); } }
-
 		public override void SetValueFromControl(){
-			PerseusLoadMatrixControl tb = (PerseusLoadMatrixControl)control;
-			Value = tb.Value;
+			Value = control.Value;
+			FilterParameterValues = control.GetSubParameterValues();
 		}
 
 		public override void UpdateControlFromValue(){
-			PerseusLoadMatrixControl lfp = (PerseusLoadMatrixControl)control;
-			lfp.Value = Value;
+			control.Value = Value;
 		}
 
 		public override void Clear(){
-			Value = new string[7];
-			for (int i = 0; i < 7; i++){
+			Value = new string[8];
+			for (int i = 0; i < 8; i++){
 				Value[i] = "";
 			}
 		}
 
 		private void UpdateFile(string filename){
-			if (control == null){
-				return;
-			}
-			PerseusLoadMatrixControl tb = (PerseusLoadMatrixControl)control;
-			tb.UpdateFile(filename);
+			control?.UpdateFile(filename);
 		}
 
-		public override float Height { get { return 770; } }
-		protected override FrameworkElement Control{
-			get{
-				string[] items = Value[1].Length > 0 ? Value[1].Split(';') : new string[0];
-				return new PerseusLoadMatrixControl(items) { Filter = Filter, Value = Value };
-			}
+		public override float Height => 790;
+
+		public override object CreateControl(){
+			string[] items = Value[1].Length > 0 ? Value[1].Split(';') : new string[0];
+			control = new PerseusLoadMatrixControl(items){Filter = Filter, Value = Value};
+			return control;
 		}
-		public string Filename { get { return Value[0]; } }
-		public string[] Items { get { return Value[1].Length > 0 ? Value[1].Split(';') : new string[0]; } }
+
+		public string Filename => Value[0];
+		public string[] Items => Value[1].Length > 0 ? Value[1].Split(';') : new string[0];
+		public override bool IsModified => !ArrayUtils.EqualArrays(Default, Value);
 
 		private int[] GetIntValues(int i){
 			string x = Value[i + 2];
@@ -87,15 +74,13 @@ namespace PerseusPluginLib.Load{
 			return result;
 		}
 
-		public int[] ExpressionColumnIndices { get { return GetIntValues(0); } }
-		public int[] NumericalColumnIndices { get { return GetIntValues(1); } }
-		public int[] CategoryColumnIndices { get { return GetIntValues(2); } }
-		public int[] TextColumnIndices { get { return GetIntValues(3); } }
-		public int[] MultiNumericalColumnIndices { get { return GetIntValues(4); } }
-
-		public override object Clone(){
-			return new PerseusLoadMatrixParam(Name)
-			{Help = Help, Visible = Visible, Filter = Filter, Default = Default, Value = Value};
-		}
+		public int[] MainColumnIndices => GetIntValues(0);
+		public int[] NumericalColumnIndices => GetIntValues(1);
+		public int[] CategoryColumnIndices => GetIntValues(2);
+		public int[] TextColumnIndices => GetIntValues(3);
+		public int[] MultiNumericalColumnIndices => GetIntValues(4);
+		public bool ShortenExpressionColumnNames => bool.Parse(Value[7]);
+		public Parameters[] MainFilterParameters => FilterParameterValues[0] ?? new Parameters[0];
+		public Parameters[] NumericalFilterParameters => FilterParameterValues[1] ?? new Parameters[0];
 	}
 }

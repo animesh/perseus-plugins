@@ -1,10 +1,6 @@
 using System.Drawing;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using BaseLib.Num;
-using BaseLib.Param;
-using BaseLib.Util;
-using BaseLib.Wpf;
+using BaseLibS.Num;
+using BaseLibS.Param;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
@@ -12,42 +8,38 @@ using PerseusPluginLib.Properties;
 
 namespace PerseusPluginLib.Basic{
 	public class DensityEstimationProcessing : IMatrixProcessing{
-		public string Name { get { return "Density estimation"; } }
-		public float DisplayOrder { get { return -3; } }
-		public bool IsActive { get { return true; } }
-		public bool HasButton { get { return true; } }
-		public Bitmap DisplayImage { get { return Resources.density_Image; } }
-		public string Heading { get { return "Basic"; } }
-		public string[] HelpSupplTables { get { return new string[0]; } }
-		public int NumSupplTables { get { return 0; } }
-		public DocumentType HelpDescriptionType { get { return DocumentType.PlainText; } }
-		public DocumentType HelpOutputType { get { return DocumentType.PlainText; } }
-		public DocumentType[] HelpSupplTablesType { get { return new DocumentType[0]; } }
-		public string[] HelpDocuments { get { return new string[0]; } }
-		public DocumentType[] HelpDocumentTypes { get { return new DocumentType[0]; } }
-		public int NumDocuments { get { return 0; } }
-		public string HelpDescription{
-			get{
-				return "The density of data points in two dimensions is calculated. Each data point is smoothed out" +
-					" by a suitable Gaussian kernel.";
-			}
-		}
-		public string HelpOutput{
-			get{
-				return "Depending on the 'Mode' parameter the output is either a copy of the input matrix with two numerical" +
-					" columns added containing the density information, or a new matrix in which the expression values" +
-					" represent the third dimension of density values.";
-			}
-		}
+		public string Name => "Density estimation";
+		public float DisplayRank => -3;
+		public bool IsActive => true;
+		public bool HasButton => true;
+		public Bitmap DisplayImage => Resources.density_Image;
+		public string Heading => "Basic";
+		public string[] HelpSupplTables => new string[0];
+		public int NumSupplTables => 0;
+		public string[] HelpDocuments => new string[0];
+		public int NumDocuments => 0;
 
-		public int GetMaxThreads(Parameters parameters) {
+		public string Url
+			=>
+				"http://coxdocs.org/doku.php?id=perseus:user:activities:MatrixProcessing:Basic:DensityEstimationProcessing"
+			;
+
+		public string Description
+			=>
+				"The density of data points in two dimensions is calculated. Each data point is smoothed out" +
+				" by a suitable Gaussian kernel.";
+
+		public string HelpOutput
+			=> "A copy of the input matrix with two numerical columns added containing the density information.";
+
+		public int GetMaxThreads(Parameters parameters){
 			return 1;
 		}
 
 		public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables,
 			ref IDocumentData[] documents, ProcessInfo processInfo){
-			int[] colIndx = param.GetMultiChoiceParam("x").Value;
-			int[] colIndy = param.GetMultiChoiceParam("y").Value;
+			int[] colIndx = param.GetParam<int[]>("x").Value;
+			int[] colIndy = param.GetParam<int[]>("y").Value;
 			if (colIndx.Length == 0){
 				processInfo.ErrString = "Please select some columns";
 				return;
@@ -56,8 +48,8 @@ namespace PerseusPluginLib.Basic{
 				processInfo.ErrString = "Please select the same number of columns in the boxes for the first and second columns.";
 				return;
 			}
-			int typeInd = param.GetSingleChoiceParam("Distribution type").Value;
-			int points = param.GetIntParam("Number of points").Value;
+			int typeInd = param.GetParam<int>("Distribution type").Value;
+			int points = param.GetParam<int>("Number of points").Value;
 			for (int k = 0; k < colIndx.Length; k++){
 				float[] xvals = GetColumn(mdata, colIndx[k]);
 				float[] yvals = GetColumn(mdata, colIndy[k]);
@@ -71,11 +63,14 @@ namespace PerseusPluginLib.Basic{
 				DensityEstimation.CalcRanges(xvals1, yvals1, out xmin, out xmax, out ymin, out ymax);
 				float[,] values = DensityEstimation.GetValuesOnGrid(xvals1, xmin, (xmax - xmin)/points, points, yvals1, ymin,
 					(ymax - ymin)/points, points);
-				if (typeInd == 1 || typeInd == 3){
+				if (typeInd == 1){
 					MakeConditional1(values);
 				}
-				if (typeInd == 2 || typeInd == 3){
+				if (typeInd == 2){
 					MakeConditional2(values);
+				}
+				if (typeInd == 3){
+					MakeConditional3(values);
 				}
 				DensityEstimation.DivideByMaximum(values);
 				double[] xmat = new double[points];
@@ -108,7 +103,7 @@ namespace PerseusPluginLib.Basic{
 					"Density of data points in the plane spanned by the columns " + xname + " and " + yname + ".", dvals);
 				mdata.AddNumericColumn("Excluded fraction_" + xname + "_" + yname,
 					"Percentage of points with a point density smaller than at this point in the plane spanned by the columns " + xname +
-						" and " + yname + ".", pvals);
+					" and " + yname + ".", pvals);
 			}
 		}
 
@@ -140,11 +135,27 @@ namespace PerseusPluginLib.Basic{
 			}
 		}
 
-		private static float[] GetColumn(IMatrixData matrixData, int ind){
-			if (ind < matrixData.ExpressionColumnCount){
-				return matrixData.GetExpressionColumn(ind);
+		private static void MakeConditional3(float[,] values){
+			float[] m1 = new float[values.GetLength(0)];
+			float[] m2 = new float[values.GetLength(2)];
+			for (int i = 0; i < m1.Length; i++){
+				for (int j = 0; j < values.GetLength(1); j++){
+					m1[i] += values[i, j];
+					m2[j] += values[i, j];
+				}
 			}
-			double[] x = matrixData.NumericColumns[ind - matrixData.ExpressionColumnCount];
+			for (int i = 0; i < m1.Length; i++){
+				for (int j = 0; j < values.GetLength(1); j++){
+					values[i, j] /= m1[i]*m2[j];
+				}
+			}
+		}
+
+		private static float[] GetColumn(IMatrixData matrixData, int ind){
+			if (ind < matrixData.ColumnCount){
+				return ArrayUtils.ToFloats(matrixData.Values.GetColumn(ind));
+			}
+			double[] x = matrixData.NumericColumns[ind - matrixData.ColumnCount];
 			float[] f = new float[x.Length];
 			for (int i = 0; i < x.Length; i++){
 				f[i] = (float) x[i];
@@ -153,8 +164,9 @@ namespace PerseusPluginLib.Basic{
 		}
 
 		private static string GetColumnName(IMatrixData matrixData, int ind){
-			return ind < matrixData.ExpressionColumnCount
-				? matrixData.ExpressionColumnNames[ind] : matrixData.NumericColumnNames[ind - matrixData.ExpressionColumnCount];
+			return ind < matrixData.ColumnCount
+				? matrixData.ColumnNames[ind]
+				: matrixData.NumericColumnNames[ind - matrixData.ColumnCount];
 		}
 
 		private static float[,] CalcExcludedPercentage(float[,] values){
@@ -180,7 +192,7 @@ namespace PerseusPluginLib.Basic{
 			foreach (float t in v){
 				total += t;
 			}
-			float[,] result = new float[n0,n1];
+			float[,] result = new float[n0, n1];
 			double sum = 0;
 			for (int i = 0; i < v.Length; i++){
 				result[ind0[i], ind1[i]] = (float) (sum/total);
@@ -189,26 +201,27 @@ namespace PerseusPluginLib.Basic{
 			return result;
 		}
 
-		public Parameters GetParameters(IMatrixData mdata, ref string errorString) {
-			string[] vals = ArrayUtils.Concat(mdata.ExpressionColumnNames, mdata.NumericColumnNames);
+		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
+			string[] vals = ArrayUtils.Concat(mdata.ColumnNames, mdata.NumericColumnNames);
 			int[] sel1 = vals.Length > 0 ? new[]{0} : new int[0];
 			int[] sel2 = vals.Length > 1 ? new[]{1} : (vals.Length > 0 ? new[]{0} : new int[0]);
 			return
 				new Parameters(new Parameter[]{
 					new MultiChoiceParam("x", sel1){
-						Values = vals, Repeats = true,
+						Values = vals,
+						Repeats = true,
 						Help =
 							"Colums for the first dimension. Multiple choices can be made leading to the creation of multiple density maps."
-					}
-					,
+					},
 					new MultiChoiceParam("y", sel2){
-						Values = vals, Repeats = true,
+						Values = vals,
+						Repeats = true,
 						Help = "Colums for the second dimension. The number has to be the same as for the 'Column 1' parameter."
 					},
 					new IntParam("Number of points", 300){
 						Help =
 							"This parameter defines the resolution of the density map. It specifies the number of pixels per dimension. Large " +
-								"values may lead to increased computing times."
+							"values may lead to increased computing times."
 					},
 					new SingleChoiceParam("Distribution type"){Values = new[]{"P(x,y)", "P(y|x)", "P(x|y)", "P(x,y)/(P(x)*P(y))"}}
 				});

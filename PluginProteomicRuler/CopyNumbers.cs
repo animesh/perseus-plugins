@@ -1,92 +1,78 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Text.RegularExpressions;
-using BaseLib.Param;
-using BaseLib.Util;
+using BaseLibS.Num;
+using BaseLibS.Param;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
 
 namespace PluginProteomicRuler{
 	public class CopyNumbers : IMatrixProcessing{
-		public bool HasButton { get { return false; } }
-		public Bitmap DisplayImage { get { return null; } }
-		public string HelpDescription{
-			get{
-				return "Estimate cellular copy numbers from protein intensities using the proteomic ruler approach.\n\n" +
-					"Requirements:\nA deep proteomic dataset of either " + String.Join(", ", SupportedOrganismNames()) +
-					", generated from a nucleated cell type or tissue, processed with a recent uniprot database.\n\n" +
-					"Parameters:\n\n" +
-					"Intensities: A series of columns containing the protein intensities in the different samples.\nIf you want to use " +
-					"LFQ intensities, it is recommended to process the dataset with 1 min. LFQ ratio count.\n\n" +
-					"Averaging mode: Select how to handle multiple columns. By default, all columns will be treated independently. " +
-					"Alternatively, enforce the same normalization for all columns or for groups of replicates. " +
-					"This will ensure that equal intensity values get translated into equal copy numbers. This mode is mainly useful " +
-					"for LFQ intensities, which are already normalized to ensure comparability across samples." +
-					"However, the samples will then not strictly have histone amounts or total protein amounts corresponding to the " +
-					"expected or user-defined values. " +
-					"As a last option, all selected columns can be averaged prior to estimating copy numbers. This is useful e.g. for " +
-					"a set of technical replicates." +
-					"Detectability normalization: By default, the algorithm assumes direct proportionality of the MS intensity and the " +
-					"protein mass. In other words, the molecular mass serves as normalization factor to calculate copy numbers from intensities. " +
-					"Optionally, one can introduce another level of normalization using e.g. the number of theoretical peptides as used " +
-					"in the iBAQ method. Just select a column containing normalization factors of your choice.\n\n" +
-					"Scaling mode: Select whether you want to scale the total protein amount using the histone proteomic ruler or if you " +
-					"want to define a total protein mass per cell.\n\n" +
-					"Total cellular protein concentration: To translate protein mass per cell into cell volume, an estimate of the total " +
-					"cellular protein concentration is needed. This value varies only to a small extent between different cell types as " +
-					"diverse as E. coli, yeast or human cells.";
-			}
-		}
-		public string HelpOutput { get { return "In the parameters, you can select which output you want to add to the matrix."; } }
-		public DocumentType HelpDescriptionType { get { return DocumentType.PlainText; } }
-		public DocumentType HelpOutputType { get { return DocumentType.PlainText; } }
-		public DocumentType[] HelpSupplTablesType { get { return new DocumentType[0]; } }
-		public string[] HelpSupplTables { get { return new string[0]; } }
-		public int NumSupplTables { get { return 0; } }
-		public string Name { get { return "Estimate copy numbers"; } }
-		public string Heading { get { return "Proteomic ruler"; } }
-		public bool IsActive { get { return true; } }
-		public float DisplayOrder { get { return 2; } }
-		public string[] HelpDocuments { get { return new string[0]; } }
-		public DocumentType[] HelpDocumentTypes { get { return new DocumentType[0]; } }
-		public int NumDocuments { get { return 0; } }
+		public bool HasButton => false;
+		public Bitmap DisplayImage => null;
 
-		public int GetMaxThreads(Parameters parameters) {
+		public string Description
+			=>
+				"Estimate cellular copy numbers anc concentrations from protein intensities using the proteomic " +
+				"ruler approach.\nWisniewski, Hein, et al., MCP, 2014. PMID 25225357.";
+
+		public string HelpOutput => "In the parameters, you can select which output you want to add to the matrix.";
+
+		public string[] HelpSupplTables => new string[0];
+
+		public int NumSupplTables => 0;
+
+		public string Name => "Estimate copy numbers and concentrations";
+
+		public string Heading => "Proteomic ruler";
+
+		public bool IsActive => true;
+
+		public float DisplayRank => 1;
+
+		public string[] HelpDocuments => new string[0];
+
+		public int NumDocuments => 0;
+
+		public int GetMaxThreads(Parameters parameters){
 			return 1;
 		}
 
+		public string Url => "http://141.61.102.17/perseus_doku/doku.php?id=perseus:plugins:proteomicruler:estimatecopynumbers";
 		private const double avogadro = 6.02214129e23;
 		private const double basePairWeight = 615.8771;
 
 		public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables,
 			ref IDocumentData[] documents, ProcessInfo processInfo){
-			int[] outputColumns = param.GetMultiChoiceParam("Output").Value;
-			int proteinIdColumnInd = param.GetSingleChoiceParam("Protein IDs").Value;
+			int[] outputColumns = param.GetParam<int[]>("Output").Value;
+			int proteinIdColumnInd = param.GetParam<int>("Protein IDs").Value;
 			string[] proteinIds = mdata.StringColumns[proteinIdColumnInd];
-			int[] intensityCols = param.GetMultiChoiceParam("Intensities").Value;
+			int[] intensityCols = param.GetParam<int[]>("Intensities").Value;
 			if (intensityCols.Length == 0){
 				processInfo.ErrString = "Please select at least one column containing protein intensities.";
 				return;
 			}
 			// variable to hold all intensity values
 			List<double[]> columns = new List<double[]>();
+			string[] inputNames = new string[intensityCols.Length];
 			string[] sampleNames = new string[intensityCols.Length];
 			for (int col = 0; col < intensityCols.Length; col++){
 				double[] values;
-				if (intensityCols[col] < mdata.ExpressionColumnCount){
-					values = ArrayUtils.ToDoubles(mdata.GetExpressionColumn(intensityCols[col]));
-					sampleNames[col] = mdata.ExpressionColumnNames[intensityCols[col]];
+				if (intensityCols[col] < mdata.ColumnCount){
+					values = ArrayUtils.ToDoubles(mdata.Values.GetColumn(intensityCols[col]));
+					inputNames[col] = mdata.ColumnNames[intensityCols[col]];
 				} else{
-					values = mdata.NumericColumns[intensityCols[col] - mdata.ExpressionColumnCount];
-					sampleNames[col] = mdata.NumericColumnNames[intensityCols[col] - mdata.ExpressionColumnCount];
+					values = mdata.NumericColumns[intensityCols[col] - mdata.ColumnCount];
+					inputNames[col] = mdata.NumericColumnNames[intensityCols[col] - mdata.ColumnCount];
 				}
-				sampleNames[col] = new Regex(@"^(?:(?:LFQ )?[Ii]ntensity )?(.*)$").Match(sampleNames[col]).Groups[1].Value;
+				sampleNames[col] = new Regex(@"^(?:(?:LFQ )?[Ii]ntensity )?(.*)$").Match(inputNames[col]).Groups[1].Value;
 				columns.Add(values);
 			}
 			// average over columns if this option is selected
-			if (param.GetSingleChoiceWithSubParams("Averaging mode").Value == 3){
+			if (param.GetParamWithSubParams<int>("Averaging mode").Value == 3){
 				double[] column = new double[mdata.RowCount];
 				for (int row = 0; row < mdata.RowCount; row++){
 					double[] values = new double[intensityCols.Length];
@@ -100,10 +86,10 @@ namespace PluginProteomicRuler{
 				sampleNames = new[]{""};
 			}
 			// revert logarithm if necessary
-			if (param.GetBoolWithSubParams("Logarithmized").Value){
+			if (param.GetParamWithSubParams<bool>("Logarithmized").Value){
 				double[] logBases = new[]{2, Math.E, 10};
 				double logBase =
-					logBases[param.GetBoolWithSubParams("Logarithmized").GetSubParameters().GetSingleChoiceParam("log base").Value];
+					logBases[param.GetParamWithSubParams<bool>("Logarithmized").GetSubParameters().GetParam<int>("log base").Value];
 				foreach (double[] t in columns){
 					for (int row = 0; row < mdata.RowCount; row++){
 						if (t[row] == 0){
@@ -113,49 +99,54 @@ namespace PluginProteomicRuler{
 					}
 				}
 			}
-			double[] mw = mdata.NumericColumns[param.GetSingleChoiceParam("Molecular masses").Value];
-			// detect whether the molecular masses are given in Da or kDa
-			if (ArrayUtils.Median(mw) < 250) // likely kDa
+			double[] mw = mdata.NumericColumns[param.GetParam<int>("Molecular masses").Value];
+			// define whether the molecular masses are given in Da or kDa
+			if (ArrayUtils.Median(mw) < 250) // most likely kDa
 			{
 				for (int i = 0; i < mw.Length; i++){
 					mw[i] *= 1000;
 				}
 			}
 			double[] detectabilityNormFactor = mw;
-			if (param.GetBoolWithSubParams("Detectability correction").Value){
+			if (param.GetParamWithSubParams<bool>("Detectability correction").Value){
 				detectabilityNormFactor =
 					mdata.NumericColumns[
-						param.GetBoolWithSubParams("Detectability correction")
-						     .GetSubParameters()
-						     .GetSingleChoiceParam("Correction factor")
-						     .Value];
+						param.GetParamWithSubParams<bool>("Detectability correction").GetSubParameters().GetParam<int>("Correction factor")
+							.Value];
 			}
 			// the normalization factor needs to be nonzero for all proteins
 			// check and replace with 1 for all relevant cases
 			for (int row = 0; row < mdata.RowCount; row++){
-				if (detectabilityNormFactor[row] == 0 || detectabilityNormFactor[row] == double.NaN){
+				if (detectabilityNormFactor[row] == 0 || double.IsNaN(detectabilityNormFactor[row])){
 					detectabilityNormFactor[row] = 1;
 				}
 			}
 			// detect the organism
 			Organism organism = DetectOrganism(proteinIds);
-			// c value the amount of DNA per cell, see: http://en.wikipedia.org/wiki/C-value
+			// c value the amount of DNA per haploid genome, see: http://en.wikipedia.org/wiki/C-value
 			double cValue = (organism.genomeSize*basePairWeight)/avogadro;
 			// find the histones
 			int[] histoneRows = FindHistones(proteinIds, organism);
 			// write a categorical column indicating the histones
 			string[][] histoneCol = new string[mdata.RowCount][];
 			for (int row = 0; row < mdata.RowCount; row++){
-				histoneCol[row] = (ArrayUtils.Contains(histoneRows, row)) ? new[]{"+"} : new[]{""};
+				histoneCol[row] = (ArrayUtils.Contains(histoneRows, row)) ? new[]{"+"} : new string[0];
 			}
 			mdata.AddCategoryColumn("Histones", "", histoneCol);
+
 			// initialize the variables for the annotation rows
-			double[] totalProteinRow = new double[mdata.ExpressionColumnCount];
-			double[] totalMoleculesRow = new double[mdata.ExpressionColumnCount];
-			string[][] organismRow = new string[mdata.ExpressionColumnCount][];
-			double[] histoneMassRow = new double[mdata.ExpressionColumnCount];
-			double[] ploidyRow = new double[mdata.ExpressionColumnCount];
-			double[] cellVolumeRow = new double[mdata.ExpressionColumnCount];
+			string[] sampleNameRow = new string[mdata.ColumnCount];
+			string[] inputNameRow = new string[mdata.ColumnCount];
+			double[] totalProteinRow = new double[mdata.ColumnCount];
+			double[] totalMoleculesRow = new double[mdata.ColumnCount];
+			string[][] organismRow = new string[mdata.ColumnCount][];
+			// populate the organismRow variable with empty strings as defaults (not null, which may cause errors when writing the annotations in the end.)
+			for (int i = 0; i < organismRow.Length; i++){
+				organismRow[i] = new[]{"N/A"};
+			}
+			double[] histoneMassRow = new double[mdata.ColumnCount];
+			double[] ploidyRow = new double[mdata.ColumnCount];
+			double[] cellVolumeRow = new double[mdata.ColumnCount];
 			double[] normalizationFactors = new double[columns.Count];
 			// calculate normalization factors for each column
 			for (int col = 0; col < columns.Count; col++){
@@ -164,7 +155,7 @@ namespace PluginProteomicRuler{
 				// normalization factor to go from intensities to copies,
 				// needs to be determined either using the total protein or the histone scaling approach
 				double factor;
-				switch (param.GetSingleChoiceWithSubParams("Scaling mode").Value){
+				switch (param.GetParamWithSubParams<int>("Scaling mode").Value){
 					case 0: // total protein amount
 						double mwWeightedNormalizedSummedIntensities = 0;
 						for (int row = 0; row < mdata.RowCount; row++){
@@ -173,10 +164,8 @@ namespace PluginProteomicRuler{
 							}
 						}
 						factor =
-							(param.GetSingleChoiceWithSubParams("Scaling mode")
-							      .GetSubParameters()
-							      .GetDoubleParam("Protein amount per cell [pg]")
-							      .Value*1e-12*avogadro)/mwWeightedNormalizedSummedIntensities;
+							param.GetParamWithSubParams<int>("Scaling mode").GetSubParameters().GetParam<double>(
+								"Protein amount per cell [pg]").Value*1e-12*avogadro/mwWeightedNormalizedSummedIntensities;
 						break;
 					case 1: // histone mode
 						double mwWeightedNormalizedSummedHistoneIntensities = 0;
@@ -186,7 +175,7 @@ namespace PluginProteomicRuler{
 							}
 						}
 						double ploidy =
-							param.GetSingleChoiceWithSubParams("Scaling mode").GetSubParameters().GetDoubleParam("Ploidy").Value;
+							param.GetParamWithSubParams<int>("Scaling mode").GetSubParameters().GetParam<double>("Ploidy").Value;
 						factor = (cValue*ploidy*avogadro)/mwWeightedNormalizedSummedHistoneIntensities;
 						break;
 					default:
@@ -196,28 +185,26 @@ namespace PluginProteomicRuler{
 				normalizationFactors[col] = factor;
 			}
 			// check averaging mode
-			if (param.GetSingleChoiceWithSubParams("Averaging mode").Value == 1) // same factor for all
+			if (param.GetParamWithSubParams<int>("Averaging mode").Value == 1) // same factor for all
 			{
 				double factor = ArrayUtils.Mean(normalizationFactors);
 				for (int i = 0; i < normalizationFactors.Length; i++){
 					normalizationFactors[i] = factor;
 				}
 			}
-			if (param.GetSingleChoiceWithSubParams("Averaging mode").Value == 2) // same factor in each group
+			if (param.GetParamWithSubParams<int>("Averaging mode").Value == 2) // same factor in each group
 			{
-				if (
-					param.GetSingleChoiceWithSubParams("Averaging mode").GetSubParameters().GetSingleChoiceParam("Grouping").Value ==
-						-1){
+				if (param.GetParamWithSubParams<int>("Averaging mode").GetSubParameters().GetParam<int>("Grouping").Value == -1){
 					processInfo.ErrString = "No grouping selected.";
 					return;
 				}
 				string[][] groupNames =
 					mdata.GetCategoryRowAt(
-						param.GetSingleChoiceWithSubParams("Averaging mode").GetSubParameters().GetSingleChoiceParam("Grouping").Value);
+						param.GetParamWithSubParams<int>("Averaging mode").GetSubParameters().GetParam<int>("Grouping").Value);
 				string[] uniqueGroupNames = Unique(groupNames);
 				int[] grouping = new int[columns.Count];
 				for (int i = 0; i < columns.Count; i++){
-					if (intensityCols[i] >= mdata.ExpressionColumnCount){ // Numeric annotation columns cannot be grouped
+					if (intensityCols[i] >= mdata.ColumnCount){ // Numeric annotation columns cannot be grouped
 						grouping[i] = i;
 						continue;
 					}
@@ -265,7 +252,8 @@ namespace PluginProteomicRuler{
 						}
 					}
 				}
-				double totalVolume = (totalProtein/(param.GetDoubleParam("Total cellular protein concentration [g/l]").Value))*1000;
+				double totalVolume = (totalProtein/(param.GetParam<double>("Total cellular protein concentration [g/l]").Value))*
+									1000;
 				// femtoliters
 				for (int row = 0; row < mdata.RowCount; row++){
 					if (!double.IsNaN(column[row]) && !double.IsNaN(mw[row])){
@@ -308,23 +296,47 @@ namespace PluginProteomicRuler{
 				if (ArrayUtils.Contains(outputColumns, 5)){
 					mdata.AddNumericColumn("Relative copy number rank" + suffix, "", relativeRank);
 				}
-				if (intensityCols[col] < mdata.ExpressionColumnCount &&
-					param.GetSingleChoiceWithSubParams("Averaging mode").Value != 3){
+				if (intensityCols[col] < mdata.ColumnCount && param.GetParamWithSubParams<int>("Averaging mode").Value != 3){
+					inputNameRow[intensityCols[col]] = inputNames[col];
+					sampleNameRow[intensityCols[col]] = sampleNames[col];
 					totalProteinRow[intensityCols[col]] = Math.Round(totalProtein, 2);
 					totalMoleculesRow[intensityCols[col]] = Math.Round(totalMolecules, 0);
-					organismRow[intensityCols[col]] = new string[]{organism.name};
+					organismRow[intensityCols[col]] = new[]{organism.name};
 					histoneMassRow[intensityCols[col]] = Math.Round(histoneMass, 4);
 					ploidyRow[intensityCols[col]] = Math.Round((histoneMass*1e-12)/cValue, 2);
 					cellVolumeRow[intensityCols[col]] = Math.Round(totalVolume, 2); // femtoliters
 				}
 			}
-			if (param.GetSingleChoiceWithSubParams("Averaging mode").Value != 3 && ArrayUtils.Contains(outputColumns, 6)){
+
+			// Summary annotation row
+			if (param.GetParamWithSubParams<int>("Averaging mode").Value != 3 && ArrayUtils.Contains(outputColumns, 6)){
 				mdata.AddNumericRow("Total protein [pg/cell]", "", totalProteinRow);
 				mdata.AddNumericRow("Total molecules per cell", "", totalMoleculesRow);
 				mdata.AddCategoryRow("Organism", "", organismRow);
 				mdata.AddNumericRow("Histone mass [pg/cell]", "", histoneMassRow);
 				mdata.AddNumericRow("Ploidy", "", ploidyRow);
 				mdata.AddNumericRow("Cell volume [fl]", "", cellVolumeRow);
+			}
+
+			// Summary matrix
+			if (param.GetParamWithSubParams<int>("Averaging mode").Value != 3 && ArrayUtils.Contains(outputColumns, 7)){
+				supplTables = new IMatrixData[1];
+				IMatrixData supplTab = (IMatrixData) mdata.CreateNewInstance();
+				supplTab.ColumnNames = new List<string>();
+				supplTab.Values.Init(totalProteinRow.Length, 0);
+				supplTab.SetAnnotationColumns(new List<string>{"Sample", "Input Column"},
+					new List<string[]>(){sampleNameRow, inputNameRow}, new List<string>(){"Organism"},
+					new List<string[][]>(){organismRow},
+					new List<string>(){
+						"Total protein [pg/cell]",
+						"Total molecules per cell",
+						"Histone mass [pg/cell]",
+						"Ploidy",
+						"Cell volume [fl]"
+					},
+					new List<double[]>(){totalProteinRow, totalMoleculesRow, histoneMassRow, ploidyRow, cellVolumeRow},
+					new List<string>(), new List<double[][]>());
+				supplTables[0] = supplTab;
 			}
 		}
 
@@ -350,40 +362,22 @@ namespace PluginProteomicRuler{
 			return validValues.ToArray();
 		}
 
-		public Parameters GetParameters(IMatrixData mdata, ref string errorString) {
+		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
 			return
 				new Parameters(new Parameter[]{
 					new SingleChoiceParam("Protein IDs"){
-						Help = "Specify the column containing the protein IDs", Values = mdata.StringColumnNames,
-						Value = Match(mdata.StringColumnNames.ToArray(), new[]{"Protein ID"}, false, true, true)[0]
+						Help = "Specify the column containing the UniProt protein IDs",
+						Values = mdata.StringColumnNames,
+						Value = ProteomicRulerUtils.Match(mdata.StringColumnNames.ToArray(), new[]{"majority"}, false, true, true)[0]
 					},
 					new MultiChoiceParam("Intensities"){
 						Help =
-							"Specify the columns that contain the intensities to be used for copy number estimation. If several columns " +
-								"are selected, the method will calculate the median.",
-						Values = ArrayUtils.Concat(mdata.ExpressionColumnNames, mdata.NumericColumnNames),
+							"Specify the columns that contain the intensities to be used for copy number estimation. " +
+							"If several columns are selected, they will be treated as specified by the 'averaging mode'.",
+						Values = ArrayUtils.Concat(mdata.ColumnNames, mdata.NumericColumnNames),
 						Value =
-							Match(ArrayUtils.Concat(mdata.ExpressionColumnNames, mdata.NumericColumnNames), new[]{"intensit"}, false, true,
-								false)
-					},
-					new SingleChoiceWithSubParams("Averaging mode", 0){
-						Values =
-							new string[]{
-								"All columns separately", "Same normalization for all columns", "Same normalization within groups",
-								"Average all columns"
-							},
-						Help = "Select how multiple columns will be treated",
-						SubParams =
-							new List<Parameters>(){
-								new Parameters(new Parameter[]{}), new Parameters(new Parameter[]{}),
-								new Parameters(new Parameter[]{
-									new SingleChoiceParam("Grouping"){
-										Values = mdata.CategoryRowNames,
-										Value = Match(mdata.CategoryRowNames.ToArray(), new[]{"group"}, false, true, true)[0]
-									}
-								}),
-								new Parameters(new Parameter[]{})
-							}
+							ProteomicRulerUtils.Match(ArrayUtils.Concat(mdata.ColumnNames, mdata.NumericColumnNames), new[]{"intensit"},
+								false, true, false)
 					},
 					new BoolWithSubParams("Logarithmized", false){
 						Help = "Specify whether the intensities are logarithmized in the selected columns.",
@@ -392,85 +386,86 @@ namespace PluginProteomicRuler{
 							new Parameters(new Parameter[]
 							{new SingleChoiceParam("log base"){Values = new[]{"2", "natural", "10"}, Value = 0}})
 					},
+					new SingleChoiceWithSubParams("Averaging mode", 0){
+						Values =
+							new[]{
+								"All columns separately", "Same normalization for all columns", "Same normalization within groups",
+								"Average all columns"
+							},
+						Help = "Select how multiple columns will be treated",
+						SubParams =
+							new List<Parameters>(){
+								new Parameters(new Parameter[]{}),
+								new Parameters(new Parameter[]{}),
+								new Parameters(new Parameter[]{
+									new SingleChoiceParam("Grouping"){
+										Values = mdata.CategoryRowNames,
+										Value = ProteomicRulerUtils.Match(mdata.CategoryRowNames.ToArray(), new[]{"group"}, false, true, true)[0]
+									}
+								}),
+								new Parameters(new Parameter[]{})
+							}
+					},
 					new SingleChoiceParam("Molecular masses"){
 						Values = mdata.NumericColumnNames,
-						Value = Match(mdata.NumericColumnNames.ToArray(), new[]{"weight"}, false, true, true)[0]
+						Help = "Select the column containing the molecular masses of the proteins.",
+						Value = ProteomicRulerUtils.Match(mdata.NumericColumnNames.ToArray(), new[]{"mol"}, false, true, true)[0]
 					},
 					new BoolWithSubParams("Detectability correction", false){
 						Help =
-							"Without correction, the algorithm assumes linearity between the signal and the mass of the proteins.\n" +
-								"Optionally select protein-specific correction factors such as the number of theoretical peptides.",
+							"Without a correction factor, the algorithm assumes linearity between the signal and the cumulative mass of each protein.\n" +
+							"Optionally select a column containing protein-specific correction factors such as the number of theoretical peptides.",
 						SubParamsFalse = new Parameters(new Parameter[]{}),
 						SubParamsTrue =
 							new Parameters(new Parameter[]{
 								new SingleChoiceParam("Correction factor"){
 									Values = mdata.NumericColumnNames,
-									Value = Match(mdata.NumericColumnNames.ToArray(), new[]{"theoretical"}, false, true, true)[0]
+									Value =
+										ProteomicRulerUtils.Match(mdata.NumericColumnNames.ToArray(), new[]{"theoretical"}, false, true, true)[0]
 								}
 							})
 					},
 					new SingleChoiceWithSubParams("Scaling mode", 1){
-						Help = "Select how the absolute values should be scaled.",
+						Help = "Select how the values should be scaled to absolute copy numbers.",
 						Values = new[]{"Total protein amount", "Histone proteomic ruler"},
 						SubParams =
 							new List<Parameters>(){
 								new Parameters(new Parameter[]{
-									new DoubleParam("Protein amount per cell [pg]", 200)
-									{Help = "Specify the amount of protein per cell in picograms."}
+									new DoubleParam("Protein amount per cell [pg]", 200){
+										Help = "Specify the amount of protein per cell in picograms."
+									}
 								}),
-								new Parameters(new Parameter[]{new DoubleParam("Ploidy", 2){}})
+								new Parameters(new Parameter[]{
+									new DoubleParam("Ploidy", 2){
+										Help =
+											"Specify the ploidy of the cell type. This factor is multiplied with the genome size of the (auto-detected) organism to determine the expected amount of DNA and histones per cell."
+									}
+								})
 							}
 					},
-					new DoubleParam("Total cellular protein concentration [g/l]", 200)
-					{Help = "Specify the expected total protein concentration (typically 200-300 g/l)."},
+					new DoubleParam("Total cellular protein concentration [g/l]", 200){
+						Help = "Specify the total protein concentration (typically 200-300 g/l)."
+					},
 					new MultiChoiceParam("Output"){
 						Help = "Select the desired output",
 						Values =
 							new[]{
 								"Copy number per cell", "Concentration [nM]", "Relative abundance (mass/total mass)",
 								"Relative abundance (molecules/total molecules)", "Copy number rank", "Relative copy number rank",
-								"Sample summary (total protein, total molecules, cell volume, ...)"
+								"Sample summary row annotations (total protein, total molecules, cell volume, ...)",
+								"Separate sample summary tab (total protein, total molecules, cell volume, ...)"
 							},
-						Value = new[]{0, 6}
+						Value = new[]{0, 1, 7}
 					}
 				});
 		}
 
 		/// <summary>
-		/// Finds strings in an array of strings.
-		/// </summary>
-		/// <param name="haystack">An array of strings that are to be searched.</param>
-		/// <param name="needles">An array of string that are to be searched for individually.</param>
-		/// <param name="caseSensitive"></param>
-		/// <param name="matchSubstring"></param>
-		/// <param name="matchFirstIfNothingFound">If nothing matched, the first element (index 0) will be returned to avoid returning null.</param>
-		/// <returns>An array of the indices of the matched elements of haystack.</returns>
-		private int[] Match(string[] haystack, string[] needles, bool caseSensitive, bool matchSubstring,
-			bool matchFirstIfNothingFound){
-			List<int> matches = new List<int>();
-			for (int i = 0; i < haystack.Length; i++){
-				string hay = (caseSensitive) ? haystack[i] : haystack[i].ToLower();
-				hay.Trim();
-				foreach (string hit in needles){
-					string needle = (caseSensitive) ? hit : hit.ToLower();
-					needle.Trim();
-					if (hay.Equals(needle) || (matchSubstring && hay.Contains(needle))){
-						matches.Add(i);
-					}
-				}
-			}
-			if (matches.Count == 0 && matchFirstIfNothingFound){
-				matches.Add(0);
-			}
-			return matches.ToArray();
-		}
-
-		/// <summary>
 		/// An object representing a model organism
 		/// </summary>
-		private class Organism{
+		public class Organism{
 			public string name = "n.d.";
-			public double genomeSize = 0;
+			public double genomeSize;
 			public string[] histoneIds = new string[0];
 
 			public override int GetHashCode(){
@@ -491,10 +486,11 @@ namespace PluginProteomicRuler{
 		/// These organisms and their histones can be auto-detected, provided that uniprot IDs are used.
 		/// </summary>
 		/// <returns>A list of Organism objects</returns>
-		private static Organism[] SupportedOrganisms(){
+		public static Organism[] SupportedOrganisms(){
 			List<Organism> organisms = new List<Organism>();
 			Organism hSapiens = new Organism{
-				name = "H. sapiens", genomeSize = 3200000000,
+				name = "H. sapiens",
+				genomeSize = 3200000000,
 				histoneIds =
 					new[]{
 						"P07305", "Q8IZA3", "Q92522", "P0C5Y9", "P0C5Z0", "H0YFX9", "Q9BTM1", "A8MQC5", "C9J0D1", "C9J386", "E5RJU1",
@@ -510,7 +506,8 @@ namespace PluginProteomicRuler{
 			};
 			organisms.Add(hSapiens);
 			Organism mMusculus = new Organism{
-				name = "M. musculus", genomeSize = 2700000000,
+				name = "M. musculus",
+				genomeSize = 2700000000,
 				histoneIds =
 					new[]{
 						"Q9DAD9", "B2RTM0", "Q8CBB6", "Q921L4", "Q5M8Q2", "Q810S6", "B1AV31", "Q497L1", "A9Z055", "Q8CGP9", "P10922",
@@ -526,7 +523,8 @@ namespace PluginProteomicRuler{
 			};
 			organisms.Add(mMusculus);
 			Organism dMelanogaster = new Organism{
-				name = "D. melanogaster", genomeSize = 130000000,
+				name = "D. melanogaster",
+				genomeSize = 130000000,
 				histoneIds =
 					new[]{
 						"Q6TXQ1", "P02255", "Q4AB54", "Q4ABE3", "Q4ABD8", "Q4AB94", "P84051", "Q4AB57", "P08985", "P02283", "P02299",
@@ -535,7 +533,8 @@ namespace PluginProteomicRuler{
 			};
 			organisms.Add(dMelanogaster);
 			Organism cElegans = new Organism{
-				name = "C. elegans", genomeSize = 100300000,
+				name = "C. elegans",
+				genomeSize = 100300000,
 				histoneIds =
 					new[]{
 						"P10771", "P15796", "Q19743", "O17536", "O01833", "Q9U3W3", "Q18336", "P09588", "J7S164", "J7SA65", "Q27485",
@@ -545,14 +544,17 @@ namespace PluginProteomicRuler{
 			};
 			organisms.Add(cElegans);
 			Organism sCerevisiae = new Organism{
-				name = "S. cerevisiae", genomeSize = 12100000,
+				name = "S. cerevisiae",
+				genomeSize = 12100000,
 				histoneIds = new[]{"P53551", "P04911", "P04912", "Q12692", "P02293", "P02294", "P61830", "P02309"}
 			};
 			organisms.Add(sCerevisiae);
 			Organism sPombe = new Organism{
-				name = "S. pombe", genomeSize = 14100000,
+				name = "S. pombe",
+				genomeSize = 14100000,
 				histoneIds = new[]{"P48003", "P04909", "P04910", "P04913", "P09988", "P10651", "P09322"}
 			};
+			organisms.Add(sPombe);
 			return organisms.ToArray();
 		}
 
@@ -560,7 +562,7 @@ namespace PluginProteomicRuler{
 		/// The list of the names of organisms that are supported.
 		/// </summary>
 		/// <returns>The names of the supported organisms.</returns>
-		private string[] SupportedOrganismNames(){
+		public string[] SupportedOrganismNames(){
 			Organism[] organisms = SupportedOrganisms();
 			List<string> names = new List<string>();
 			foreach (Organism organism in organisms){
@@ -582,7 +584,7 @@ namespace PluginProteomicRuler{
 				histoneHits.Add(organism, 0);
 			}
 			foreach (string proteinGroupId in proteinGroupIds){
-				string[] ids = proteinGroupId.Split(new char[]{';'});
+				string[] ids = proteinGroupId.Split(';');
 				foreach (string id in ids){
 					foreach (Organism organism in SupportedOrganisms()){
 						if (ArrayUtils.Contains(organism.histoneIds, id)){
@@ -591,12 +593,12 @@ namespace PluginProteomicRuler{
 					}
 				}
 			}
-			Organism[] organisms = ArrayUtils.GetKeys(histoneHits);
-			int[] counts = ArrayUtils.GetValues(histoneHits);
-			if (histoneHits.Count > 0){
-				return organisms[ArrayUtils.Order(counts)[counts.Length - 1]];
+			Organism[] organisms = histoneHits.Keys.ToArray();
+			int[] counts = histoneHits.Values.ToArray();
+			if (ArrayUtils.Max(counts) == 0){
+				return new Organism();
 			}
-			return new Organism();
+			return organisms[ArrayUtils.Order(counts)[counts.Length - 1]];
 		}
 
 		/// <summary>
@@ -609,7 +611,7 @@ namespace PluginProteomicRuler{
 			List<int> histoneRows = new List<int>();
 			for (int row = 0; row < proteinIds.Length; row++){
 				bool isHistone = false;
-				string[] ids = proteinIds[row].Split(new char[]{';'});
+				string[] ids = proteinIds[row].Split(';');
 				foreach (string id in ids){
 					if (ArrayUtils.Contains(organism.histoneIds, id)){
 						isHistone = true;

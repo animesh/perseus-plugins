@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Drawing;
-using BaseLib.Param;
-using BaseLib.Util;
+using BaseLibS.Param;
+using BaseLibS.Util;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
@@ -13,13 +13,15 @@ namespace PerseusPluginLib.Norm{
 		public string Name { get { return "Un-Z-score"; } }
 		public string Heading { get { return "Normalization"; } }
 		public bool IsActive { get { return true; } }
-		public float DisplayOrder { get { return 50; } }
+		public float DisplayRank { get { return 50; } }
 		public string HelpOutput { get { return "Normalized expression matrix."; } }
 		public string[] HelpSupplTables { get { return new string[0]; } }
 		public int NumSupplTables { get { return 0; } }
 		public string[] HelpDocuments { get { return new string[0]; } }
 		public int NumDocuments { get { return 0; } }
-		public string HelpDescription{
+		public string Url { get { return "http://coxdocs.org/doku.php?id=perseus:user:activities:MatrixProcessing:Normalization:UnZScore"; } }
+		public string Description
+		{
 			get{
 				return "Providing the means and standard deviations used in a z-score transformation the data is " +
 					"transformed back to what it was before z-scoring.";
@@ -73,10 +75,10 @@ namespace PerseusPluginLib.Norm{
 
 		public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables,
 			ref IDocumentData[] documents, ProcessInfo processInfo){
-			SingleChoiceWithSubParams access = param.GetSingleChoiceWithSubParams("Matrix access");
+				ParameterWithSubParams<int> access = param.GetParamWithSubParams<int>("Matrix access");
 			bool rows = access.Value == 0;
-			int meanInd = access.GetSubParameters().GetSingleChoiceParam("Mean").Value;
-			int devInd = access.GetSubParameters().GetSingleChoiceParam("Std. dev.").Value;
+			int meanInd = access.GetSubParameters().GetParam<int>("Mean").Value;
+			int devInd = access.GetSubParameters().GetParam<int>("Std. dev.").Value;
 			double[] means = rows ? mdata.NumericColumns[meanInd] : mdata.NumericRows[meanInd];
 			double[] stddevs = rows ? mdata.NumericColumns[devInd] : mdata.NumericRows[devInd];
 			UnZscore(rows, mdata, processInfo.NumThreads, means, stddevs);
@@ -90,31 +92,31 @@ namespace PerseusPluginLib.Norm{
 			} else{
 				double[] doubles = means;
 				double[] stddevs1 = stddevs;
-				new ThreadDistributor(nthreads, data.ExpressionColumnCount, j => Calc2(j, data, doubles, stddevs1)).Start();
+				new ThreadDistributor(nthreads, data.ColumnCount, j => Calc2(j, data, doubles, stddevs1)).Start();
 			}
 		}
 
 		private static void Calc1(int i, IMatrixData data, IList<double> means, IList<double> stddevs){
-			double[] vals = new double[data.ExpressionColumnCount];
-			for (int j = 0; j < data.ExpressionColumnCount; j++){
-				vals[j] = data[i, j];
+			double[] vals = new double[data.ColumnCount];
+			for (int j = 0; j < data.ColumnCount; j++){
+				vals[j] = data.Values[i, j];
 			}
 			double stddev = stddevs[i];
 			double mean = means[i];
-			for (int j = 0; j < data.ExpressionColumnCount; j++){
-				data[i, j] = (float) ((data[i, j]*stddev) + mean);
+			for (int j = 0; j < data.ColumnCount; j++){
+				data.Values[i, j] = (float)((data.Values[i, j] * stddev) + mean);
 			}
 		}
 
 		private static void Calc2(int j, IMatrixData data, IList<double> means, IList<double> stddevs){
 			double[] vals = new double[data.RowCount];
 			for (int i = 0; i < data.RowCount; i++){
-				vals[i] = data[i, j];
+				vals[i] = data.Values[i, j];
 			}
 			double stddev = stddevs[j];
 			double mean = means[j];
 			for (int i = 0; i < data.RowCount; i++){
-				data[i, j] = (float) ((data[i, j]*stddev) + mean);
+				data.Values[i, j] = (float)((data.Values[i, j] * stddev) + mean);
 			}
 		}
 	}

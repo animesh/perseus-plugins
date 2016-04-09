@@ -2,44 +2,51 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Windows;
-using System.Windows.Controls;
-using BaseLib.Parse;
-using BaseLib.Util;
+using BaseLibS.Param;
+using BaseLibS.Parse;
+using BaseLibS.Util;
+using Microsoft.Win32;
 using PerseusApi.Utils;
 
 namespace PerseusPluginLib.Load{
 	/// <summary>
 	/// Interaction logic for PerseusLoadParameterControl.xaml
 	/// </summary>
-	public partial class PerseusLoadMatrixControl : UserControl{
+	public partial class PerseusLoadMatrixControl{
 		public string Filter { get; set; }
-		public PerseusLoadMatrixControl() : this(new string[0]) {}
-		public PerseusLoadMatrixControl(IList<string> items) : this(items, null) {}
+		public PerseusLoadMatrixControl() : this(new string[0]){}
+		public PerseusLoadMatrixControl(IList<string> items) : this(items, null){}
 
 		public PerseusLoadMatrixControl(IList<string> items, string filename){
 			InitializeComponent();
-			MultiListSelector1.Init(items, new[]{"Expression", "Numerical", "Categorical", "Text", "Multi-numerical"});
+			MultiListSelector1.Init(items, new[]{"Main", "Numerical", "Categorical", "Text", "Multi-numerical"},
+				new Func<string[], Parameters>[]{
+					s => new Parameters(PerseusUtils.GetNumFilterParams(s)), s => new Parameters(PerseusUtils.GetNumFilterParams(s)),
+					null, null, null
+				});
 			if (!string.IsNullOrEmpty(filename)){
 				UpdateFile(filename);
 			}
 		}
 
-		public string Filename { get { return TextBox1.Text; } }
-		public int[] ExpressionColumnIndices { get { return MultiListSelector1.GetSelectedIndices(0); } }
-		public int[] NumericalColumnIndices { get { return MultiListSelector1.GetSelectedIndices(1); } }
-		public int[] CategoryColumnIndices { get { return MultiListSelector1.GetSelectedIndices(2); } }
-		public int[] TextColumnIndices { get { return MultiListSelector1.GetSelectedIndices(3); } }
-		public int[] MultiNumericalColumnIndices { get { return MultiListSelector1.GetSelectedIndices(4); } }
+		public string Filename => TextBox1.Text;
+		public int[] MainColumnIndices => MultiListSelector1.GetSelectedIndices(0);
+		public int[] NumericalColumnIndices => MultiListSelector1.GetSelectedIndices(1);
+		public int[] CategoryColumnIndices => MultiListSelector1.GetSelectedIndices(2);
+		public int[] TextColumnIndices => MultiListSelector1.GetSelectedIndices(3);
+		public int[] MultiNumericalColumnIndices => MultiListSelector1.GetSelectedIndices(4);
+
 		public string[] Value{
 			get{
-				string[] result = new string[7];
+				string[] result = new string[8];
 				result[0] = Filename;
 				result[1] = StringUtils.Concat(";", MultiListSelector1.items);
-				result[2] = StringUtils.Concat(";", ExpressionColumnIndices);
+				result[2] = StringUtils.Concat(";", MainColumnIndices);
 				result[3] = StringUtils.Concat(";", NumericalColumnIndices);
 				result[4] = StringUtils.Concat(";", CategoryColumnIndices);
 				result[5] = StringUtils.Concat(";", TextColumnIndices);
 				result[6] = StringUtils.Concat(";", MultiNumericalColumnIndices);
+				result[7] = "" + (ShortenCheckBox.IsChecked == true);
 				return result;
 			}
 			set{
@@ -50,9 +57,16 @@ namespace PerseusPluginLib.Load{
 						MultiListSelector1.SetSelected(i, ind, true);
 					}
 				}
+				if (!string.IsNullOrEmpty(value[7])){
+					ShortenCheckBox.IsChecked = bool.Parse(value[7]);
+				}
 			}
 		}
-		public string Text { get { return TextBox1.Text; } set { TextBox1.Text = value; } }
+
+		public string Text{
+			get { return TextBox1.Text; }
+			set { TextBox1.Text = value; }
+		}
 
 		private static IEnumerable<int> GetIndices(string s){
 			string[] q = s.Length > 0 ? s.Split(';') : new string[0];
@@ -76,24 +90,10 @@ namespace PerseusPluginLib.Load{
 				MessageBox.Show("Could not open the file '" + filename + "'. It is probably opened by another program.");
 				return;
 			}
-			string[] colDescriptions = null;
 			string[] colTypes = null;
-			bool[] colVisible = null;
-			if (annotationRows.ContainsKey("Description")){
-				colDescriptions = annotationRows["Description"];
-				annotationRows.Remove("Description");
-			}
 			if (annotationRows.ContainsKey("Type")){
 				colTypes = annotationRows["Type"];
 				annotationRows.Remove("Type");
-			}
-			if (annotationRows.ContainsKey("Visible")){
-				string[] colVis = annotationRows["Visible"];
-				colVisible = new bool[colVis.Length];
-				for (int i = 0; i < colVisible.Length; i++){
-					colVisible[i] = bool.Parse(colVis[i]);
-				}
-				annotationRows.Remove("Visible");
 			}
 			string msg = TabSep.CanOpen(filename);
 			if (msg != null){
@@ -102,18 +102,19 @@ namespace PerseusPluginLib.Load{
 			}
 			MultiListSelector1.Init(colNames);
 			if (colTypes != null){
-				PerseusUtils.SelectExact(colNames, colTypes, colVisible, MultiListSelector1);
+				PerseusUtils.SelectExact(colNames, colTypes, MultiListSelector1);
 			} else{
 				PerseusUtils.SelectHeuristic(colNames, MultiListSelector1);
 			}
 		}
 
-		private void SelectButton_OnClick(object sender, RoutedEventArgs e) {
-			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog();
+		private void SelectButton_OnClick(object sender, RoutedEventArgs e){
+			OpenFileDialog ofd = new OpenFileDialog();
 			if (Filter != null && !Filter.Equals("")){
 				ofd.Filter = Filter;
 			}
-			if (!ofd.ShowDialog().Value){
+			bool? showDialog = ofd.ShowDialog();
+			if (showDialog != null && !showDialog.Value){
 				return;
 			}
 			string filename = ofd.FileName;
@@ -127,6 +128,10 @@ namespace PerseusPluginLib.Load{
 			}
 			UpdateFile(filename);
 			TextBox1.Focus();
+		}
+
+		public IList<Parameters[]> GetSubParameterValues(){
+			return MultiListSelector1.GetSubParameterValues();
 		}
 	}
 }

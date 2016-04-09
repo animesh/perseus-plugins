@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
-using BaseLib.Param;
-using BaseLib.Util;
+using BaseLibS.Num;
+using BaseLibS.Param;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
@@ -9,20 +9,23 @@ using PerseusPluginLib.Utils;
 
 namespace PerseusPluginLib.Rearrange{
 	public class RemoveEmptyColumns : IMatrixProcessing{
-		public bool HasButton { get { return false; } }
-		public Bitmap DisplayImage { get { return null; } }
-		public string HelpOutput { get { return "Same matrix but with empty columns removed."; } }
-		public string[] HelpSupplTables { get { return new string[0]; } }
-		public int NumSupplTables { get { return 0; } }
-		public string Heading { get { return "Rearrange"; } }
-		public string Name { get { return "Remove empty columns"; } }
-		public bool IsActive { get { return true; } }
-		public float DisplayOrder { get { return 3.5f; } }
-		public string HelpDescription { get { return "Columns containing no values or only invalid values will be removed."; } }
-		public string[] HelpDocuments { get { return new string[0]; } }
-		public int NumDocuments { get { return 0; } }
+		public bool HasButton => false;
+		public Bitmap DisplayImage => null;
+		public string HelpOutput => "Same matrix but with empty columns removed.";
+		public string[] HelpSupplTables => new string[0];
+		public int NumSupplTables => 0;
+		public string Heading => "Rearrange";
+		public string Name => "Remove empty columns";
+		public bool IsActive => true;
+		public float DisplayRank => 3.5f;
+		public string Description => "Columns containing no values or only invalid values will be removed.";
+		public string[] HelpDocuments => new string[0];
+		public int NumDocuments => 0;
 
-		public int GetMaxThreads(Parameters parameters) {
+		public string Url
+			=> "http://coxdocs.org/doku.php?id=perseus:user:activities:MatrixProcessing:Rearrange:RemoveEmptyColumns";
+
+		public int GetMaxThreads(Parameters parameters){
 			return 1;
 		}
 
@@ -33,8 +36,8 @@ namespace PerseusPluginLib.Rearrange{
 			int[] multiNumColInds = GetValidMultiNumCols(data);
 			int[] catColInds = GetValidCatCols(data);
 			int[] textColInds = GetValidTextCols(data);
-			if (exColInds.Length < data.ExpressionColumnCount){
-				data.ExtractExpressionColumns(exColInds);
+			if (exColInds.Length < data.ColumnCount){
+				data.ExtractColumns(exColInds);
 			}
 			if (numColInds.Length < data.NumericColumnCount){
 				data.NumericColumns = ArrayUtils.SubList(data.NumericColumns, numColInds);
@@ -100,8 +103,8 @@ namespace PerseusPluginLib.Rearrange{
 
 		private static int[] GetValidExCols(IMatrixData data){
 			List<int> valids = new List<int>();
-			for (int i = 0; i < data.ExpressionColumnCount; i++){
-				if (!IsInvalidExColumn(data.GetExpressionColumn(i))){
+			for (int i = 0; i < data.ColumnCount; i++){
+				if (!IsInvalidExColumn(data.Values.GetColumn(i))){
 					valids.Add(i);
 				}
 			}
@@ -144,16 +147,16 @@ namespace PerseusPluginLib.Rearrange{
 			return true;
 		}
 
-		private static bool IsInvalidExColumn(IEnumerable<float> expressionColumn){
-			foreach (float d in expressionColumn){
-				if (!float.IsNaN(d) && !float.IsInfinity(d)){
+		private static bool IsInvalidExColumn(IEnumerable<double> expressionColumn){
+			foreach (double d in expressionColumn){
+				if (!double.IsNaN(d) && !double.IsInfinity(d)){
 					return false;
 				}
 			}
 			return true;
 		}
 
-		public Parameters GetParameters(IMatrixData mdata, ref string errorString) {
+		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
 			return new Parameters();
 		}
 	}

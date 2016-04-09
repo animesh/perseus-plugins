@@ -2,8 +2,10 @@
 using System.Drawing;
 using System.IO;
 using System.Text;
-using BaseLib.Param;
-using BaseLib.Util;
+using BaseLibS.Num;
+using BaseLibS.Param;
+using BaseLibS.Util;
+using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
 using PerseusPluginLib.Properties;
@@ -11,16 +13,18 @@ using PerseusPluginLib.Properties;
 namespace PerseusPluginLib.Load{
 	public class BinaryUpload : IMatrixUpload{
 		private const string hexAlphabet = "0123456789ABCDEF";
-		public bool HasButton { get { return true; } }
-		public Bitmap DisplayImage { get { return Resources.binary; } }
-		public string Name { get { return "Binary upload"; } }
-		public bool IsActive { get { return true; } }
-		public float DisplayOrder { get { return 12; } }
-		public string HelpDescription { get { return "Load all bytes from a binary file and display them as hexadecimal numbers."; } }
-
-		public int GetMaxThreads(Parameters parameters){
-			return 1;
-		}
+		public bool HasButton => true;
+		public Bitmap DisplayImage => Resources.binary;
+		public string Name => "Binary upload";
+		public bool IsActive => true;
+		public float DisplayRank => 12;
+		public string Description => "Load all bytes from a binary file and display them as hexadecimal numbers.";
+		public string[] HelpSupplTables => new string[0];
+		public int NumSupplTables => 0;
+		public string[] HelpDocuments => new string[0];
+		public int NumDocuments => 0;
+		public string Url => "http://coxdocs.org/doku.php?id=perseus:user:activities:MatrixUpload:BinaryUpload";
+		public int GetMaxThreads(Parameters parameters) { return 1; }
 
 		public Parameters GetParameters(ref string errString){
 			return
@@ -32,8 +36,9 @@ namespace PerseusPluginLib.Load{
 				});
 		}
 
-		public void LoadData(IMatrixData mdata, Parameters parameters, ProcessInfo processInfo){
-			string filename = parameters.GetFileParam("File").Value;
+		public void LoadData(IMatrixData mdata, Parameters parameters, ref IMatrixData[] supplTables,
+			ref IDocumentData[] documents, ProcessInfo processInfo){
+				string filename = parameters.GetParam<string>("File").Value;
 			BinaryReader reader = FileUtils.GetBinaryReader(filename);
 			byte[] x = reader.ReadBytes((int) reader.BaseStream.Length);
 			reader.Close();
@@ -50,17 +55,14 @@ namespace PerseusPluginLib.Load{
 				hexLines.Add(ToHex(y));
 				charLines.Add(ToChar(y));
 			}
-			mdata.SetData("", "", new List<string>(), new List<string>(), new float[hexLines.Count,0], new bool[hexLines.Count,0],
-				new float[hexLines.Count,0], "", true, new List<string>(new[]{"Hex", "Char"}),
-				new List<string>(new[]{"Hex", "Char"}), new List<string[]>(new[]{hexLines.ToArray(), charLines.ToArray()}),
-				new List<string>(), new List<string>(), new List<string[][]>(), new List<string>(), new List<string>(),
-				new List<double[]>(), new List<string>(), new List<string>(), new List<double[][]>(), new List<string>(),
-				new List<string>(), new List<string[][]>(), new List<string>(), new List<string>(), new List<double[]>());
+			mdata.Values.Init(hexLines.Count,0);
+			mdata.SetAnnotationColumns(new List<string>(new[]{"Hex", "Char"}), new List<string>(new[]{"Hex", "Char"}),
+				new List<string[]>(new[]{hexLines.ToArray(), charLines.ToArray()}), new List<string>(), new List<string>(),
+				new List<string[][]>(), new List<string>(), new List<string>(), new List<double[]>(), new List<string>(),
+				new List<string>(), new List<double[][]>());
 		}
 
-		private static string ToHex(byte b){
-			return "" + hexAlphabet[b >> 4] + hexAlphabet[b & 0xF];
-		}
+		private static string ToHex(byte b) { return "" + hexAlphabet[b >> 4] + hexAlphabet[b & 0xF]; }
 
 		private static readonly HashSet<byte> replace =
 			new HashSet<byte>(new byte[]{
@@ -68,9 +70,7 @@ namespace PerseusPluginLib.Load{
 				0xAD
 			});
 
-		private static string ToChar(byte b){
-			return b <= 0x1F || replace.Contains(b) ? "." : "" + (char) b;
-		}
+		private static string ToChar(byte b) { return b <= 0x1F || replace.Contains(b) ? "." : "" + (char) b; }
 
 		private static string ToChar(IList<byte> b){
 			if (b.Count == 0){

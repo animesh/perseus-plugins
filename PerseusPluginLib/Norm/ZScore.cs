@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using BaseLib.Param;
-using BaseLib.Util;
+using BaseLibS.Num;
+using BaseLibS.Param;
+using BaseLibS.Util;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
@@ -10,18 +11,55 @@ using PerseusPluginLib.Properties;
 
 namespace PerseusPluginLib.Norm{
 	public class ZScore : IMatrixProcessing{
-		public bool HasButton { get { return true; } }
-		public Bitmap DisplayImage { get { return Resources.zscoreButton_Image; } }
-		public string Name { get { return "Z-score"; } }
-		public string Heading { get { return "Normalization"; } }
-		public bool IsActive { get { return true; } }
-		public float DisplayOrder { get { return -10; } }
-		public string HelpOutput { get { return "Normalized expression matrix."; } }
-		public string[] HelpSupplTables { get { return new string[0]; } }
-		public int NumSupplTables { get { return 0; } }
-		public string[] HelpDocuments { get { return new string[0]; } }
-		public int NumDocuments { get { return 0; } }
-		public string HelpDescription{
+		public bool HasButton{
+			get { return true; }
+		}
+
+		public Bitmap DisplayImage{
+			get { return Resources.zscoreButton_Image; }
+		}
+
+		public string Name{
+			get { return "Z-score"; }
+		}
+
+		public string Heading{
+			get { return "Normalization"; }
+		}
+
+		public bool IsActive{
+			get { return true; }
+		}
+
+		public float DisplayRank{
+			get { return -10; }
+		}
+
+		public string HelpOutput{
+			get { return "Normalized expression matrix."; }
+		}
+
+		public string[] HelpSupplTables{
+			get { return new string[0]; }
+		}
+
+		public int NumSupplTables{
+			get { return 0; }
+		}
+
+		public string[] HelpDocuments{
+			get { return new string[0]; }
+		}
+
+		public int NumDocuments{
+			get { return 0; }
+		}
+
+		public string Url{
+			get { return "http://coxdocs.org/doku.php?id=perseus:user:activities:MatrixProcessing:Normalization:ZScore"; }
+		}
+
+		public string Description{
 			get{
 				return
 					"The mean of each row/column is subtracted from each value. The result is then divided by the standard deviation of the row/column.";
@@ -43,7 +81,9 @@ namespace PerseusPluginLib.Norm{
 			return
 				new Parameters(new Parameter[]{
 					new SingleChoiceWithSubParams("Matrix access"){
-						Values = new[]{"Rows", "Columns"}, ParamNameWidth = 136, TotalWidth = 731,
+						Values = new[]{"Rows", "Columns"},
+						ParamNameWidth = 136,
+						TotalWidth = 731,
 						SubParams = new[]{rowParams, new Parameters()},
 						Help = "Specifies if the z-scoring is performed on the rows or the columns of the matrix."
 					},
@@ -53,16 +93,16 @@ namespace PerseusPluginLib.Norm{
 
 		public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables,
 			ref IDocumentData[] documents, ProcessInfo processInfo){
-			SingleChoiceWithSubParams access = param.GetSingleChoiceWithSubParams("Matrix access");
+			ParameterWithSubParams<int> access = param.GetParamWithSubParams<int>("Matrix access");
 			bool rows = access.Value == 0;
 			int groupInd;
 			if (rows){
-				groupInd = access.GetSubParameters().GetSingleChoiceParam("Grouping").Value - 1;
+				groupInd = access.GetSubParameters().GetParam<int>("Grouping").Value - 1;
 			} else{
 				groupInd = -1;
 			}
-			bool report = param.GetBoolParam("Report mean and std. dev.").Value;
-			bool median = param.GetBoolParam("Use median").Value;
+			bool report = param.GetParam<bool>("Report mean and std. dev.").Value;
+			bool median = param.GetParam<bool>("Use median").Value;
 			if (groupInd < 0){
 				double[] means;
 				double[] stddevs;
@@ -125,13 +165,13 @@ namespace PerseusPluginLib.Norm{
 			bool report, bool median){
 			double[] vals = new double[inds.Count];
 			for (int j = 0; j < inds.Count; j++){
-				double q = data[i, inds[j]];
+				double q = data.Values[i, inds[j]];
 				vals[j] = q;
 			}
 			double stddev;
 			double mean = ArrayUtils.MeanAndStddev(vals, out stddev, median);
 			foreach (int t in inds){
-				data[i, t] = (float) ((data[i, t] - mean)/stddev);
+				data.Values[i, t] = (float) ((data.Values[i, t] - mean)/stddev);
 			}
 			if (report){
 				means[i] = mean;
@@ -164,26 +204,25 @@ namespace PerseusPluginLib.Norm{
 				new ThreadDistributor(nthreads, data.RowCount, i => Calc1(i, data, doubles, stddevs1, report, median)).Start();
 			} else{
 				if (report){
-					means = new double[data.ExpressionColumnCount];
-					stddevs = new double[data.ExpressionColumnCount];
+					means = new double[data.ColumnCount];
+					stddevs = new double[data.ColumnCount];
 				}
 				double[] doubles = means;
 				double[] stddevs1 = stddevs;
-				new ThreadDistributor(nthreads, data.ExpressionColumnCount, j => Calc2(j, data, doubles, stddevs1, report, median))
-					.Start();
+				new ThreadDistributor(nthreads, data.ColumnCount, j => Calc2(j, data, doubles, stddevs1, report, median)).Start();
 			}
 		}
 
 		private static void Calc1(int i, IMatrixData data, IList<double> means, IList<double> stddevs, bool report,
 			bool median){
-			double[] vals = new double[data.ExpressionColumnCount];
-			for (int j = 0; j < data.ExpressionColumnCount; j++){
-				vals[j] = data[i, j];
+			double[] vals = new double[data.ColumnCount];
+			for (int j = 0; j < data.ColumnCount; j++){
+				vals[j] = data.Values[i, j];
 			}
 			double stddev;
 			double mean = ArrayUtils.MeanAndStddev(vals, out stddev, median);
-			for (int j = 0; j < data.ExpressionColumnCount; j++){
-				data[i, j] = (float) ((data[i, j] - mean)/stddev);
+			for (int j = 0; j < data.ColumnCount; j++){
+				data.Values[i, j] = (float) ((data.Values[i, j] - mean)/stddev);
 			}
 			if (report){
 				means[i] = mean;
@@ -195,12 +234,12 @@ namespace PerseusPluginLib.Norm{
 			bool median){
 			double[] vals = new double[data.RowCount];
 			for (int i = 0; i < data.RowCount; i++){
-				vals[i] = data[i, j];
+				vals[i] = data.Values[i, j];
 			}
 			double stddev;
 			double mean = ArrayUtils.MeanAndStddev(vals, out stddev, median);
 			for (int i = 0; i < data.RowCount; i++){
-				data[i, j] = (float) ((data[i, j] - mean)/stddev);
+				data.Values[i, j] = (float) ((data.Values[i, j] - mean)/stddev);
 			}
 			if (report){
 				means[j] = mean;

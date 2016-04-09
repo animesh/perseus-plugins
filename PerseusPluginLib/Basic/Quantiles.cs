@@ -1,10 +1,7 @@
 using System.Collections.Generic;
 using System.Drawing;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using BaseLib.Param;
-using BaseLib.Util;
-using BaseLib.Wpf;
+using BaseLibS.Num;
+using BaseLibS.Param;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
@@ -12,41 +9,42 @@ using PerseusPluginLib.Properties;
 
 namespace PerseusPluginLib.Basic{
 	public class Quantiles : IMatrixProcessing{
-		public bool HasButton { get { return true; } }
-		public Bitmap DisplayImage { get { return Resources.quantiles; } }
-		public string Name { get { return "Quantiles"; } }
-		public string Heading { get { return "Basic"; } }
-		public bool IsActive { get { return true; } }
-		public float DisplayOrder { get { return -4; } }
-		public string HelpOutput { get { return "For each selected expression coulumn a categorical column is added containing the quantile information."; } }
-		public string[] HelpSupplTables { get { return new string[0]; } }
-		public int NumSupplTables { get { return 0; } }
-		public DocumentType HelpDescriptionType { get { return DocumentType.PlainText; } }
-		public DocumentType HelpOutputType { get { return DocumentType.PlainText; } }
-		public DocumentType[] HelpSupplTablesType { get { return new DocumentType[0]; } }
-		public string[] HelpDocuments { get { return new string[0]; } }
-		public DocumentType[] HelpDocumentTypes { get { return new DocumentType[0]; } }
-		public int NumDocuments { get { return 0; } }
-		public string HelpDescription{
-			get{
-				return
-					"Expression columns are transformed into quantiles. These can than for instance used in subsequent enrichment analysis.";
-			}
-		}
+		public bool HasButton => false;
+		public Bitmap DisplayImage => Resources.quantiles;
+		public string Name => "Quantiles";
+		public string Heading => "Basic";
+		public bool IsActive => true;
+		public float DisplayRank => -4;
 
-		public int GetMaxThreads(Parameters parameters) {
+		public string HelpOutput
+			=> "For each selected expression coulumn a categorical column is added containing the quantile information.";
+
+		public string[] HelpSupplTables => new string[0];
+		public int NumSupplTables => 0;
+		public string[] HelpDocuments => new string[0];
+		public int NumDocuments => 0;
+
+		public string Url
+			=> "http://coxdocs.org/doku.php?id=perseus:user:activities:MatrixProcessing:Basic:Quantiles";
+
+		public string Description
+			=>
+				"Expression columns are transformed into quantiles. These can then, for instance, be used in a subsequent enrichment analysis."
+			;
+
+		public int GetMaxThreads(Parameters parameters){
 			return 1;
 		}
 
 		public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables,
 			ref IDocumentData[] documents, ProcessInfo processInfo){
-			int numQuantiles = param.GetIntParam("Number of quantiles").Value;
-			int[] colInds = param.GetMultiChoiceParam("Columns").Value;
+			int numQuantiles = param.GetParam<int>("Number of quantiles").Value;
+			int[] colInds = param.GetParam<int[]>("Columns").Value;
 			foreach (int colInd in colInds){
-				float[] vals = mdata.GetExpressionColumn(colInd);
+				double[] vals = GetValues(mdata, colInd);
 				List<int> v = new List<int>();
 				for (int i = 0; i < vals.Length; i++){
-					if (!float.IsNaN(vals[i])){
+					if (!double.IsNaN(vals[i])){
 						v.Add(i);
 					}
 				}
@@ -62,21 +60,39 @@ namespace PerseusPluginLib.Basic{
 					int catVal = (i*numQuantiles)/o.Length + 1;
 					catCol[o[i]] = new[]{"Q" + catVal};
 				}
-				string name = mdata.ExpressionColumnNames[colInd] + "_q";
-				string desc = "The column " + mdata.ExpressionColumnNames[colInd] + " has been divided into " + numQuantiles +
-					" quantiles.";
-				mdata.AddCategoryColumn(name, desc, catCol);
+				string name = GetName(mdata, colInd);
+				string nameq = name + "_q";
+				string desc = "The column " + name + " has been divided into " + numQuantiles + " quantiles.";
+				mdata.AddCategoryColumn(nameq, desc, catCol);
 			}
 		}
 
-		public Parameters GetParameters(IMatrixData mdata, ref string errorString) {
-			List<string> values = mdata.ExpressionColumnNames;
+		private static string GetName(IMatrixData mdata, int colInd){
+			if (colInd < mdata.ColumnCount){
+				return mdata.ColumnNames[colInd];
+			}
+			colInd -= mdata.ColumnCount;
+			return mdata.NumericColumnNames[colInd];
+		}
+
+		private static double[] GetValues(IMatrixData mdata, int colInd){
+			if (colInd < mdata.ColumnCount){
+				return ArrayUtils.ToDoubles(mdata.Values.GetColumn(colInd));
+			}
+			colInd -= mdata.ColumnCount;
+			return mdata.NumericColumns[colInd];
+		}
+
+		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
+			string[] values = ArrayUtils.Concat(mdata.ColumnNames, mdata.NumericColumnNames);
 			return
 				new Parameters(new Parameter[]{
-					new IntParam("Number of quantiles", 5)
-					{Help = "This defines the number of quantiles that each column is going to be divided into."},
+					new IntParam("Number of quantiles", 5){
+						Help = "This defines the number of quantiles that each column is going to be divided into."
+					},
 					new MultiChoiceParam("Columns"){
-						Value = ArrayUtils.ConsecutiveInts(values.Count), Values = values,
+						Value = ArrayUtils.ConsecutiveInts(mdata.ColumnCount),
+						Values = values,
 						Help = "Please select here the columns that should be transformed into quantiles."
 					}
 				});

@@ -43,6 +43,15 @@
     <Reference Include="BaseLib">
       <HintPath>..\DLLs\BaseLib.dll</HintPath>
     </Reference>
+    <Reference Include="BaseLibS">
+      <HintPath>..\DLLs\BaseLibS.dll</HintPath>
+    </Reference>
+    <Reference Include="Calc">
+      <HintPath>..\DLLs\Calc.dll</HintPath>
+    </Reference>
+    <Reference Include="NumPluginSvm">
+      <HintPath>..\DLLs\NumPluginSvm.dll</HintPath>
+    </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
     <Reference Include="System" />
@@ -59,8 +68,13 @@
     <Compile Include="Basic\CombineAnnotations.cs" />
     <Compile Include="Basic\CombineByIdentifiersProcessing.cs" />
     <Compile Include="Basic\AddNoise.cs" />
+    <Compile Include="Filter\FilterNumericalColumn.cs" />
+    <Compile Include="Load\CreateGeneList.cs" />
+    <Compile Include="Load\CreateRandomMatrix.cs" />
+    <Compile Include="Manual\SelectRowsManuallyControl1.xaml.cs">
+      <DependentUpon>SelectRowsManuallyControl1.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Norm\UnZScore.cs" />
-    <Compile Include="Rearrange\CollapseEvidenceFile.cs" />
     <Compile Include="Rearrange\CombineCategoricalColumns.cs" />
     <Compile Include="Basic\DensityEstimationProcessing.cs" />
     <Compile Include="Basic\PerformanceCurves.cs" />
@@ -96,22 +110,19 @@
     <Compile Include="Load\UnstructuredTxtUpload.cs" />
     <Compile Include="Manual\MatrixDataTable.cs" />
     <Compile Include="Manual\SelectRowsManually.cs" />
-    <Compile Include="Manual\SelectRowsManuallyControl.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="Manual\SelectRowsManuallyControl.Designer.cs" />
     <Compile Include="Manual\SelectRowsManuallyResult.cs" />
     <Compile Include="Quality\CreateQualityMatrix.cs" />
-    <Compile Include="Quality\FilterQuality.cs" />
     <Compile Include="Rearrange\ChangeColumnType.cs" />
-    <Compile Include="Rearrange\ColumnGroupingToMultipleRows.cs" />
     <Compile Include="Rearrange\ConvertMultiNumeric.cs" />
+    <Compile Include="Rearrange\ReorderRemoveAnnotRows.cs" />
+    <Compile Include="Rearrange\SearchTextColumns.cs" />
+    <Compile Include="Rearrange\DuplicateColumns.cs" />
     <Compile Include="Rearrange\ProcessTextColumns.cs" />
     <Compile Include="Rearrange\ExpandMultiNumeric.cs" />
     <Compile Include="Rearrange\RemoveEmptyColumns.cs" />
     <Compile Include="Rearrange\RenameColumns.cs" />
     <Compile Include="Rearrange\RenameColumnsRegexp.cs" />
-    <Compile Include="Rearrange\ReorderColumns.cs" />
+    <Compile Include="Rearrange\ReorderRemoveColumns.cs" />
     <Compile Include="Filter\FilterCategoricalColumn.cs" />
     <Compile Include="Filter\FilterTextualColumn.cs" />
     <Compile Include="Filter\FilterValidValuesRows.cs" />
@@ -121,11 +132,9 @@
     <Compile Include="Utils\INameInfo.cs" />
     <Compile Include="Utils\PerseusPluginUtils.cs" />
     <Compile Include="Norm\Divide.cs" />
-    <Compile Include="Norm\DivisionByColumn.cs" />
     <Compile Include="Norm\Rank.cs" />
     <Compile Include="Norm\ScaleToInterval.cs" />
     <Compile Include="Norm\Subtract.cs" />
-    <Compile Include="Norm\SubtractColumn.cs" />
     <Compile Include="Norm\SubtractRowCluster.cs" />
     <Compile Include="Norm\UnitVector.cs" />
     <Compile Include="Norm\WidthAdjustment.cs" />
@@ -148,7 +157,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Manual\SelectRowsManuallyControl.resx" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -208,6 +216,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="Manual\SelectRowsManuallyControl1.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\raw.png" />
@@ -220,6 +232,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Save-icon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\dice.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\list.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

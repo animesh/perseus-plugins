@@ -2,26 +2,28 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using BaseLib.Param;
-using BaseLib.Util;
+using BaseLibS.Num;
+using BaseLibS.Param;
+using BaseLibS.Util;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
 
 namespace PerseusPluginLib.Norm{
 	public class Subtract : IMatrixProcessing{
-		public bool HasButton { get { return false; } }
-		public Bitmap DisplayImage { get { return null; } }
-		public string HelpDescription { get { return "The specified quantity calculated on each row/column is subtracted from each value."; } }
-		public string HelpOutput { get { return "Normalized expression matrix."; } }
-		public string[] HelpSupplTables { get { return new string[0]; } }
-		public int NumSupplTables { get { return 0; } }
-		public string Name { get { return "Subtract"; } }
-		public string Heading { get { return "Normalization"; } }
-		public bool IsActive { get { return true; } }
-		public float DisplayOrder { get { return -6; } }
-		public string[] HelpDocuments { get { return new string[0]; } }
-		public int NumDocuments { get { return 0; } }
+		public bool HasButton => false;
+		public Bitmap DisplayImage => null;
+		public string Description => "The specified quantity calculated on each row/column is subtracted from each value.";
+		public string HelpOutput => "Normalized expression matrix.";
+		public string[] HelpSupplTables => new string[0];
+		public int NumSupplTables => 0;
+		public string Name => "Subtract";
+		public string Heading => "Normalization";
+		public bool IsActive => true;
+		public float DisplayRank => -6;
+		public string[] HelpDocuments => new string[0];
+		public int NumDocuments => 0;
+		public string Url => "http://coxdocs.org/doku.php?id=perseus:user:activities:MatrixProcessing:Normalization:Subtract";
 
 		public int GetMaxThreads(Parameters parameters) {
 			return int.MaxValue;
@@ -29,15 +31,15 @@ namespace PerseusPluginLib.Norm{
 
 		public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables,
 			ref IDocumentData[] documents, ProcessInfo processInfo){
-				SingleChoiceWithSubParams access = param.GetSingleChoiceWithSubParams("Matrix access");
+				ParameterWithSubParams<int> access = param.GetParamWithSubParams<int>("Matrix access");
 			bool rows = access.Value == 0;
 			int groupInd;
 			if (rows){
-				groupInd = access.GetSubParameters().GetSingleChoiceParam("Grouping").Value - 1;
+				groupInd = access.GetSubParameters().GetParam<int>("Grouping").Value - 1;
 			} else{
 				groupInd = -1;
 			}
-			int what = param.GetSingleChoiceParam("Subtract what").Value;
+			int what = param.GetParam<int>("Subtract what").Value;
 			if (groupInd < 0){
 				SubtractValues(rows, GetFunc(what), mdata, processInfo.NumThreads);
 			} else{
@@ -63,12 +65,12 @@ namespace PerseusPluginLib.Norm{
 			for (int i = 0; i < data.RowCount; i++){
 				double[] vals = new double[inds.Count];
 				for (int j = 0; j < inds.Count; j++){
-					double q = data[i, inds[j]];
+					double q = data.Values[i, inds[j]];
 					vals[j] = q;
 				}
 				double mean = func(vals);
 				foreach (int t in inds){
-					data[i, t] = (float) ((data[i, t] - mean));
+					data.Values[i, t] = (float)((data.Values[i, t] - mean));
 				}
 			}
 		}
@@ -114,35 +116,35 @@ namespace PerseusPluginLib.Norm{
 			if (rows){
 				new ThreadDistributor(nthreads, data.RowCount, i => Calc1(i, summarize, data)).Start();
 			} else{
-				new ThreadDistributor(nthreads, data.ExpressionColumnCount, j => Calc2(j, summarize, data)).Start();
+				new ThreadDistributor(nthreads, data.ColumnCount, j => Calc2(j, summarize, data)).Start();
 			}
 		}
 
 		private static void Calc1(int i, Func<double[], double> summarize, IMatrixData data){
 			List<double> vals = new List<double>();
-			for (int j = 0; j < data.ExpressionColumnCount; j++){
-				double q = data[i, j];
+			for (int j = 0; j < data.ColumnCount; j++){
+				double q = data.Values[i, j];
 				if (!double.IsNaN(q) && !double.IsInfinity(q)){
 					vals.Add(q);
 				}
 			}
 			double med = summarize(vals.ToArray());
-			for (int j = 0; j < data.ExpressionColumnCount; j++){
-				data[i, j] -= (float) med;
+			for (int j = 0; j < data.ColumnCount; j++){
+				data.Values[i, j] -= (float)med;
 			}
 		}
 
 		private static void Calc2(int j, Func<double[], double> summarize, IMatrixData data){
 			List<double> vals = new List<double>();
 			for (int i = 0; i < data.RowCount; i++){
-				double q = data[i, j];
+				double q = data.Values[i, j];
 				if (!double.IsNaN(q) && !double.IsInfinity(q)){
 					vals.Add(q);
 				}
 			}
 			double med = summarize(vals.ToArray());
 			for (int i = 0; i < data.RowCount; i++){
-				data[i, j] -= (float) med;
+				data.Values[i, j] -= (float)med;
 			}
 		}
 	}

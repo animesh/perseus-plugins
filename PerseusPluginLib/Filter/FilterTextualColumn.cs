@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Drawing;
-using BaseLib.Param;
+using BaseLibS.Param;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
@@ -8,34 +8,40 @@ using PerseusPluginLib.Utils;
 
 namespace PerseusPluginLib.Filter{
 	public class FilterTextualColumn : IMatrixProcessing{
-		public bool HasButton { get { return false; } }
-		public Bitmap DisplayImage { get { return null; } }
-		public string HelpDescription { get { return "Only those rows are kept that have a value in the textual column that matches the search string."; } }
-		public string HelpOutput { get { return "The filtered matrix."; } }
-		public string[] HelpSupplTables { get { return new string[0]; } }
-		public int NumSupplTables { get { return 0; } }
-		public string Name { get { return "Filter rows based on text column"; } }
-		public string Heading { get { return "Filter rows"; } }
-		public bool IsActive { get { return true; } }
-		public float DisplayOrder { get { return 2; } }
-		public string[] HelpDocuments { get { return new string[0]; } }
-		public int NumDocuments { get { return 0; } }
+		public bool HasButton => false;
+		public Bitmap DisplayImage => null;
 
-		public int GetMaxThreads(Parameters parameters) {
+		public string Description
+			=> "Only those rows are kept that have a value in the textual column that matches the search string.";
+
+		public string HelpOutput => "The filtered matrix.";
+		public string[] HelpSupplTables => new string[0];
+		public int NumSupplTables => 0;
+		public string Name => "Filter rows based on text column";
+		public string Heading => "Filter rows";
+		public bool IsActive => true;
+		public float DisplayRank => 2;
+		public string[] HelpDocuments => new string[0];
+		public int NumDocuments => 0;
+
+		public int GetMaxThreads(Parameters parameters){
 			return 1;
 		}
 
+		public string Url
+			=> "http://coxdocs.org/doku.php?id=perseus:user:activities:MatrixProcessing:Filterrows:FilterTextualColumn";
+
 		public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables,
 			ref IDocumentData[] documents, ProcessInfo processInfo){
-			int colInd = param.GetSingleChoiceParam("Column").Value;
-			string searchString = param.GetStringParam("Search string").Value;
+			int colInd = param.GetParam<int>("Column").Value;
+			string searchString = param.GetParam<string>("Search string").Value;
 			if (string.IsNullOrEmpty(searchString)){
 				processInfo.ErrString = "Please provide a search string";
 				return;
 			}
-			bool remove = param.GetSingleChoiceParam("Mode").Value == 0;
-			bool matchCase = param.GetBoolParam("Match case").Value;
-			bool matchWholeWord = param.GetBoolParam("Match whole word").Value;
+			bool remove = param.GetParam<int>("Mode").Value == 0;
+			bool matchCase = param.GetParam<bool>("Match case").Value;
+			bool matchWholeWord = param.GetParam<bool>("Match whole word").Value;
 			string[] vals = mdata.StringColumns[colInd];
 			List<int> valids = new List<int>();
 			for (int i = 0; i < vals.Length; i++){
@@ -72,18 +78,20 @@ namespace PerseusPluginLib.Filter{
 			return matchWholeWord ? searchString.Equals(word) : word.Contains(searchString);
 		}
 
-		public Parameters GetParameters(IMatrixData mdata, ref string errorString) {
+		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
 			return
 				new Parameters(new Parameter[]{
-					new SingleChoiceParam("Column")
-					{Values = mdata.StringColumnNames, Help = "The text column that the filtering should be based on."},
+					new SingleChoiceParam("Column"){
+						Values = mdata.StringColumnNames,
+						Help = "The text column that the filtering should be based on."
+					},
 					new StringParam("Search string"){Help = "String that is searched in the specified column."},
 					new BoolParam("Match case"), new BoolParam("Match whole word"){Value = true},
 					new SingleChoiceParam("Mode"){
 						Values = new[]{"Remove matching rows", "Keep matching rows"},
 						Help =
 							"If 'Remove matching rows' is selected, rows matching the criteria will be removed while " +
-								"all other rows will be kept. If 'Keep matching rows' is selected, the opposite will happen.",
+							"all other rows will be kept. If 'Keep matching rows' is selected, the opposite will happen.",
 						Value = 0
 					},
 					PerseusPluginUtils.GetFilterModeParam(true)

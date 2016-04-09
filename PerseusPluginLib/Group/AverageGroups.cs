@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using BaseLib.Param;
-using BaseLib.Util;
+using BaseLibS.Num;
+using BaseLibS.Param;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
@@ -11,29 +11,31 @@ using PerseusPluginLib.Utils;
 
 namespace PerseusPluginLib.Group{
 	public class AverageGroups : IMatrixProcessing{
-		public bool HasButton { get { return true; } }
-		public Bitmap DisplayImage { get { return Resources.average; } }
-		public string HelpDescription{
-			get{
-				return
-					"Expression columns are averaged over groups. This requires that at least one categorical annotation row is defined.";
-			}
-		}
-		public string HelpOutput { get { return "Averaged expression matrix containing as many columns as there were groups defined."; } }
-		public string[] HelpSupplTables { get { return new string[0]; } }
-		public int NumSupplTables { get { return 0; } }
-		public string Name { get { return "Average groups"; } }
-		public string Heading { get { return "Annot. rows"; } }
-		public bool IsActive { get { return true; } }
-		public float DisplayOrder { get { return 3; } }
-		public string[] HelpDocuments { get { return new string[0]; } }
-		public int NumDocuments { get { return 0; } }
+		public bool HasButton => true;
+		public Bitmap DisplayImage => Resources.average;
+		public string HelpOutput => "Averaged expression matrix containing as many columns as there were groups defined.";
+		public string[] HelpSupplTables => new string[0];
+		public int NumSupplTables => 0;
+		public string Name => "Average groups";
+		public string Heading => "Annot. rows";
+		public bool IsActive => true;
+		public float DisplayRank => 3;
+		public string[] HelpDocuments => new string[0];
+		public int NumDocuments => 0;
 
-		public int GetMaxThreads(Parameters parameters) {
+		public int GetMaxThreads(Parameters parameters){
 			return 1;
 		}
 
-		public Parameters GetParameters(IMatrixData mdata, ref string errorString) {
+		public string Url => "http://coxdocs.org/doku.php?id=perseus:user:activities:MatrixProcessing:Annotrows:AverageGroups"
+			;
+
+		public string Description
+			=>
+				"Expression columns are averaged over groups. This requires that at least one categorical annotation row is defined."
+			;
+
+		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
 			if (mdata.CategoryRowCount == 0){
 				errorString = "No grouping is loaded.";
 				return null;
@@ -42,25 +44,29 @@ namespace PerseusPluginLib.Group{
 				new Parameters(new Parameter[]{
 					new SingleChoiceParam("Grouping"){Values = mdata.CategoryRowNames},
 					new SingleChoiceParam("Average type"){
-						Values = new[]{"median", "mean", "sum", "geometric mean"},
+						Values = new[]{"Median", "Mean", "Sum", "Geometric mean"},
 						Help = "Select wether median or mean should be used for the averaging."
 					},
 					new IntParam("Min. valid values per group", 1), new BoolParam("Keep original data", false),
-					new BoolParam("Add standard deviation")
+					new SingleChoiceParam("Add variation"){
+						Values = new[]{"<None>", "Standard deviation", "Error of mean"},
+						Help = "Specify here if a measure of group-wise variation should be added as numerical columns."
+					}
 				});
 		}
 
 		public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables,
 			ref IDocumentData[] documents, ProcessInfo processInfo){
-			int avType = param.GetSingleChoiceParam("Average type").Value;
+			int avType = param.GetParam<int>("Average type").Value;
 			if (mdata.CategoryRowCount == 0){
 				processInfo.ErrString = "No category rows were loaded.";
 				return;
 			}
-			int groupColInd = param.GetSingleChoiceParam("Grouping").Value;
-			int validVals = param.GetIntParam("Min. valid values per group").Value;
-			bool keep = param.GetBoolParam("Keep original data").Value;
-			bool sdev = param.GetBoolParam("Add standard deviation").Value;
+			int groupColInd = param.GetParam<int>("Grouping").Value;
+			int validVals = param.GetParam<int>("Min. valid values per group").Value;
+			bool keep = param.GetParam<bool>("Keep original data").Value;
+			int varInd = param.GetParam<int>("Add variation").Value - 1;
+			bool sdev = varInd >= 0;
 			Func<IList<double>, double> func;
 			switch (avType){
 				case 0:
@@ -78,10 +84,10 @@ namespace PerseusPluginLib.Group{
 				default:
 					throw new Exception("Never get here.");
 			}
-			if (sdev) {
-				AddStandardDeviation(groupColInd, validVals, mdata);
+			if (sdev){
+				AddStandardDeviation(groupColInd, validVals, mdata, varInd);
 			}
-			if (keep) {
+			if (keep){
 				FillMatrixKeep(groupColInd, validVals, mdata, func);
 			} else{
 				FillMatrixDontKeep(groupColInd, validVals, mdata, func);
@@ -92,16 +98,16 @@ namespace PerseusPluginLib.Group{
 			Func<IList<double>, double> func){
 			string[][] groupCol = mdata.GetCategoryRowAt(groupColInd);
 			string[] groupNames = ArrayUtils.UniqueValuesPreserveOrder(groupCol);
-			int[][] colInds = PerseusPluginUtils.GetExpressionColIndices(groupCol, groupNames);
-			float[,] newExCols = new float[mdata.RowCount,groupNames.Length];
-			float[,] newQuality = new float[mdata.RowCount,groupNames.Length];
-			bool[,] newImputed = new bool[mdata.RowCount,groupNames.Length];
+			int[][] colInds = PerseusPluginUtils.GetMainColIndices(groupCol, groupNames);
+			float[,] newExCols = new float[mdata.RowCount, groupNames.Length];
+			float[,] newQuality = new float[mdata.RowCount, groupNames.Length];
+			bool[,] newImputed = new bool[mdata.RowCount, groupNames.Length];
 			for (int i = 0; i < newExCols.GetLength(0); i++){
 				for (int j = 0; j < newExCols.GetLength(1); j++){
 					List<double> vals = new List<double>();
 					List<bool> imps = new List<bool>();
 					foreach (int ind in colInds[j]){
-						double val = mdata[i, ind];
+						double val = mdata.Values[i, ind];
 						if (!double.IsNaN(val) && !double.IsInfinity(val)){
 							vals.Add(val);
 							imps.Add(mdata.IsImputed[i, ind]);
@@ -118,11 +124,11 @@ namespace PerseusPluginLib.Group{
 					newImputed[i, j] = imp;
 				}
 			}
-			mdata.ExpressionColumnNames = new List<string>(groupNames);
-			mdata.ExpressionColumnDescriptions = GetEmpty(groupNames);
-			mdata.ExpressionValues = newExCols;
-			mdata.QualityValues = newQuality;
-			mdata.IsImputed = newImputed;
+			mdata.ColumnNames = new List<string>(groupNames);
+			mdata.ColumnDescriptions = GetEmpty(groupNames);
+			mdata.Values.Set(newExCols);
+			mdata.Quality.Set(newQuality);
+			mdata.IsImputed.Set(newImputed);
 			mdata.RemoveCategoryRowAt(groupColInd);
 			for (int i = 0; i < mdata.CategoryRowCount; i++){
 				mdata.SetCategoryRowAt(AverageCategoryRow(mdata.GetCategoryRowAt(i), colInds), i);
@@ -132,18 +138,18 @@ namespace PerseusPluginLib.Group{
 			}
 		}
 
-		public static List<string> GetEmpty(IEnumerable<string> x){
+		public static List<string> GetEmpty(string[] x){
 			List<string> result = new List<string>();
-			foreach (string s in x){
+			for (int i = 0; i < x.Length; i++){
 				result.Add("");
 			}
 			return result;
 		}
 
-		private static void AddStandardDeviation(int groupColInd, int validVals, IMatrixData mdata){
+		private static void AddStandardDeviation(int groupColInd, int validVals, IMatrixData mdata, int varInd){
 			string[][] groupCol = mdata.GetCategoryRowAt(groupColInd);
 			string[] groupNames = ArrayUtils.UniqueValuesPreserveOrder(groupCol);
-			int[][] colInds = PerseusPluginUtils.GetExpressionColIndices(groupCol, groupNames);
+			int[][] colInds = PerseusPluginUtils.GetMainColIndices(groupCol, groupNames);
 			double[][] newNumCols = new double[groupNames.Length][];
 			for (int i = 0; i < newNumCols.Length; i++){
 				newNumCols[i] = new double[mdata.RowCount];
@@ -152,14 +158,18 @@ namespace PerseusPluginLib.Group{
 				for (int j = 0; j < groupNames.Length; j++){
 					List<double> vals = new List<double>();
 					foreach (int ind in colInds[j]){
-						double val = mdata[i, ind];
+						double val = mdata.Values[i, ind];
 						if (!double.IsNaN(val) && !double.IsInfinity(val)){
 							vals.Add(val);
 						}
 					}
 					float xy = float.NaN;
 					if (vals.Count >= validVals){
-						xy = (float) ArrayUtils.StandardDeviation(vals);
+						if (varInd == 0){
+							xy = (float) ArrayUtils.StandardDeviation(vals);
+						} else{
+							xy = (float) (ArrayUtils.StandardDeviation(vals)/Math.Sqrt(vals.Count));
+						}
 					}
 					newNumCols[j][i] = xy;
 				}
@@ -173,7 +183,7 @@ namespace PerseusPluginLib.Group{
 		private static void FillMatrixKeep(int groupColInd, int validVals, IMatrixData mdata, Func<IList<double>, double> func){
 			string[][] groupCol = mdata.GetCategoryRowAt(groupColInd);
 			string[] groupNames = ArrayUtils.UniqueValuesPreserveOrder(groupCol);
-			int[][] colInds = PerseusPluginUtils.GetExpressionColIndices(groupCol, groupNames);
+			int[][] colInds = PerseusPluginUtils.GetMainColIndices(groupCol, groupNames);
 			double[][] newNumCols = new double[groupNames.Length][];
 			for (int i = 0; i < newNumCols.Length; i++){
 				newNumCols[i] = new double[mdata.RowCount];
@@ -182,7 +192,7 @@ namespace PerseusPluginLib.Group{
 				for (int j = 0; j < groupNames.Length; j++){
 					List<double> vals = new List<double>();
 					foreach (int ind in colInds[j]){
-						double val = mdata[i, ind];
+						double val = mdata.Values[i, ind];
 						if (!double.IsNaN(val) && !double.IsInfinity(val)){
 							vals.Add(val);
 						}

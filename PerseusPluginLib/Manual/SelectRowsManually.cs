@@ -1,35 +1,36 @@
-﻿using System;
-using System.Drawing;
-using BaseLib.Param;
-using BaseLib.Util;
+﻿using System.Drawing;
+using BaseLibS.Param;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
 using PerseusPluginLib.Properties;
 
 namespace PerseusPluginLib.Manual{
 	public class SelectRowsManually : IMatrixAnalysis{
-		public string HelpDescription { get { return ""; } }
-		public bool HasButton { get { return true; } }
-		public Bitmap DisplayImage { get { return Resources.hand; } }
-		public string Heading { get { return "Manual editing"; } }
-		public string Name { get { return "Select rows manually"; } }
-		public bool IsActive { get { return true; } }
-		public float DisplayOrder { get { return 0; } }
-		public DocumentType HelpDescriptionType { get { return DocumentType.PlainText; } }
+		public string Description
+			=>
+				"Rows can be selected interactively and a new matrix can be produced which contains only the selected rows or only the unselected rows."
+			;
 
-		public int GetMaxThreads(Parameters parameters) {
+		public bool HasButton => true;
+		public Bitmap DisplayImage => Resources.hand;
+		public string Heading => null;
+		public string Name => "Select rows manually";
+		public bool IsActive => true;
+		public float DisplayRank => 2;
+
+		public string Url
+			=> "http://coxdocs.org/doku.php?id=perseus:user:activities:MatrixAnalysis:Misc:SelectRowsManually";
+
+		public int GetMaxThreads(Parameters parameters){
 			return 1;
 		}
 
-		public IAnalysisResult AnalyzeData(IMatrixData mdata, Parameters param, ProcessInfo processInfo) {
+		public IAnalysisResult AnalyzeData(IMatrixData mdata, Parameters param, ProcessInfo processInfo){
 			return new SelectRowsManuallyResult(mdata);
 		}
 
-		public Parameters GetParameters(IMatrixData mdata, ref string errorString) {
-			return new Parameters(new Parameter[] { });
+		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
+			return new Parameters(new Parameter[]{});
 		}
-
-		public Tuple<IMatrixProcessing, Func<Parameters, IMatrixData, Parameters, string>>[] Replacements { get { return new Tuple<IMatrixProcessing, Func<Parameters, IMatrixData, Parameters, string>>[0]; } }
-		public bool CanStartWithEmptyData { get { return false; } }
 	}
 }

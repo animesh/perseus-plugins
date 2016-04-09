@@ -1,45 +1,49 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using BaseLib.Param;
-using BaseLib.Util;
+using BaseLibS.Num;
+using BaseLibS.Param;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
 
 namespace PerseusPluginLib.Rearrange{
 	public class ExpandMultiNumeric : IMatrixProcessing{
-		public bool HasButton { get { return false; } }
-		public Bitmap DisplayImage { get { return null; } }
-		public string HelpDescription{
-			get{
-				return "Distribute multiple values per cell in a multi-numeric column over multiple rows. For each row in the" +
-					" original matrix there will be as many rows created as there are numbers in the cell of the multi-numeric " +
-					"column. If multiple multi-numeric columns are selected they have to have the same number of values in every " +
-					"row. Elements of string columns, if one is selected, are interpreted as semicolon-separated. They also have " +
-					"to have the same number of semicolon-separated elements as there are values in the cell(s) " +
-					"of the multi-numeric columns(s).";
-			}
-		}
-		public string Name { get { return "Expand multi-numeric and string columns"; } }
-		public string Heading { get { return "Rearrange"; } }
-		public bool IsActive { get { return true; } }
-		public float DisplayOrder { get { return 12; } }
-		public string[] HelpSupplTables { get { return new string[0]; } }
-		public int NumSupplTables { get { return 0; } }
-		public string HelpOutput { get { return "Columns are the same. The number of rows increases due to the expansion."; } }
-		public string[] HelpDocuments { get { return new string[0]; } }
-		public int NumDocuments { get { return 0; } }
+		//TODO: optionally distribute values into multiple columns.
+		public bool HasButton => false;
+		public Bitmap DisplayImage => null;
 
-		public int GetMaxThreads(Parameters parameters) {
+		public string Description
+			=>
+				"Distribute multiple values per cell in a multi-numeric column over multiple rows. For each row in the" +
+				" original matrix there will be as many rows created as there are numbers in the cell of the multi-numeric " +
+				"column. If multiple multi-numeric columns are selected they have to have the same number of values in every " +
+				"row. Elements of text columns, if one is selected, are interpreted as semicolon-separated. They also have " +
+				"to have the same number of semicolon-separated elements as there are values in the cell(s) " +
+				"of the multi-numeric columns(s).";
+
+		public string Name => "Expand multi-numeric and text columns";
+		public string Heading => "Rearrange";
+		public bool IsActive => true;
+		public float DisplayRank => 12;
+		public string[] HelpSupplTables => new string[0];
+		public int NumSupplTables => 0;
+		public string HelpOutput => "Columns are the same. The number of rows increases due to the expansion.";
+		public string[] HelpDocuments => new string[0];
+		public int NumDocuments => 0;
+
+		public string Url
+			=> "http://coxdocs.org/doku.php?id=perseus:user:activities:MatrixProcessing:Rearrange:ExpandMultiNumeric";
+
+		public int GetMaxThreads(Parameters parameters){
 			return 1;
 		}
 
 		public void ProcessData(IMatrixData mdata, Parameters param1, ref IMatrixData[] supplTables,
 			ref IDocumentData[] documents, ProcessInfo processInfo){
-			int[] multiNumCols = param1.GetMultiChoiceParam("Multi-numeric columns").Value;
+			int[] multiNumCols = param1.GetParam<int[]>("Multi-numeric columns").Value;
 			Array.Sort(multiNumCols);
-			int[] stringCols = param1.GetMultiChoiceParam("String columns").Value;
+			int[] stringCols = param1.GetParam<int[]>("Text columns").Value;
 			Array.Sort(stringCols);
 			HashSet<int> multinumCols2 = new HashSet<int>(multiNumCols);
 			HashSet<int> stringCols2 = new HashSet<int>(stringCols);
@@ -48,7 +52,7 @@ namespace PerseusPluginLib.Rearrange{
 				return;
 			}
 			int rowCount = GetNewRowCount(mdata, multiNumCols, stringCols);
-			float[,] expVals = new float[rowCount,mdata.ExpressionColumnCount];
+			float[,] expVals = new float[rowCount, mdata.ColumnCount];
 			List<string[]> stringC = new List<string[]>();
 			for (int i = 0; i < mdata.StringColumnCount; i++){
 				stringC.Add(new string[rowCount]);
@@ -76,14 +80,14 @@ namespace PerseusPluginLib.Rearrange{
 				bool empty = entryCount == 0;
 				entryCount = Math.Max(entryCount, 1);
 				for (int j = 0; j < entryCount; j++){
-					for (int k = 0; k < mdata.ExpressionColumnCount; k++){
-						expVals[count + j, k] = mdata[i, k];
+					for (int k = 0; k < mdata.ColumnCount; k++){
+						expVals[count + j, k] = mdata.Values[i, k];
 					}
 					for (int k = 0; k < mdata.NumericColumnCount; k++){
 						numC[k][count + j] = mdata.NumericColumns[k][i];
 					}
 					for (int k = 0; k < mdata.CategoryColumnCount; k++){
-						catC[k][count + j] = mdata.GetCategoryColumnEntryAt(k,i);
+						catC[k][count + j] = mdata.GetCategoryColumnEntryAt(k, i);
 					}
 				}
 				for (int k = 0; k < mdata.MultiNumericColumnCount; k++){
@@ -126,8 +130,9 @@ namespace PerseusPluginLib.Rearrange{
 			foreach (double[][] d in toBeTransformed){
 				numC.Add(Transform(d));
 			}
-			mdata.SetData(mdata.Name, mdata.ExpressionColumnNames, expVals, mdata.StringColumnNames, stringC,
-				mdata.CategoryColumnNames, catC,
+			mdata.ColumnNames = mdata.ColumnNames;
+			mdata.Values.Set(expVals);
+			mdata.SetAnnotationColumns(mdata.StringColumnNames, stringC, mdata.CategoryColumnNames, catC,
 				new List<string>(ArrayUtils.Concat(mdata.NumericColumnNames,
 					ArrayUtils.SubList(mdata.MultiNumericColumnNames, multiNumCols))), numC,
 				new List<string>(ArrayUtils.SubArray(mdata.MultiNumericColumnNames, multiNumComplement)), multiNumC);
@@ -170,7 +175,8 @@ namespace PerseusPluginLib.Rearrange{
 
 		private static int GetNewRowCount(IMatrixData mdata, IList<int> multiNumCols, IList<int> stringCols){
 			return multiNumCols.Count > 0
-				? GetNewRowCount(mdata.MultiNumericColumns[multiNumCols[0]]) : GetNewRowCount(mdata.StringColumns[stringCols[0]]);
+				? GetNewRowCount(mdata.MultiNumericColumns[multiNumCols[0]])
+				: GetNewRowCount(mdata.StringColumns[stringCols[0]]);
 		}
 
 		private static int GetNewRowCount(IEnumerable<string> stringColumn){
@@ -197,16 +203,18 @@ namespace PerseusPluginLib.Rearrange{
 			return count;
 		}
 
-		public Parameters GetParameters(IMatrixData mdata, ref string errorString) {
+		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
 			return
 				new Parameters(new Parameter[]{
 					new MultiChoiceParam("Multi-numeric columns"){
-						Values = mdata.MultiNumericColumnNames, Value = new int[0],
+						Values = mdata.MultiNumericColumnNames,
+						Value = new int[0],
 						Help = "Select here the multi-numeric colums that should be expanded."
 					},
-					new MultiChoiceParam("String columns"){
-						Values = mdata.StringColumnNames, Value = new int[0],
-						Help = "Select here the string colums that should be expanded."
+					new MultiChoiceParam("Text columns"){
+						Values = mdata.StringColumnNames,
+						Value = new int[0],
+						Help = "Select here the text colums that should be expanded."
 					}
 				});
 		}

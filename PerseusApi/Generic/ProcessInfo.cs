@@ -1,17 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using BaseLib.Util;
+using System.Threading;
+using BaseLibS.Util;
 
 namespace PerseusApi.Generic{
 	public class ProcessInfo{
 		private readonly int numThreads;
-		public Settings Settings { get; private set; }
+		public Settings Settings { get; }
 		public Action<string> Status { get; private set; }
 		public Action<int> Progress { get; private set; }
 		public Action<int> ReduceThreads { get; private set; }
 		public string ErrString { get; set; }
 		public List<ThreadDistributor> threadDistributors = new List<ThreadDistributor>();
+		private readonly List<Thread> registeredThreads = new List<Thread>();
 
 		public ProcessInfo(Settings settings, Action<string> status, Action<int> progress, int numThreads,
 			Action<int> reduceThreads){
@@ -22,13 +24,26 @@ namespace PerseusApi.Generic{
 			ReduceThreads = reduceThreads;
 		}
 
-		public int NumThreads { get { return Math.Min(numThreads, Settings.Nthreads); } }
+		public int NumThreads => Math.Min(numThreads, Settings.Nthreads);
 
 		public void Abort(){
 			foreach (
 				ThreadDistributor threadDistributor in threadDistributors.Where(threadDistributor => threadDistributor != null)){
 				threadDistributor.Abort();
 			}
+			if (registeredThreads != null){
+				foreach (Thread t in registeredThreads.Where(t => t != null)){
+					t.Abort();
+				}
+			}
+		}
+
+		public void RegisterThread(Thread t){
+			registeredThreads.Add(t);
+		}
+
+		public void ClearRegisteredThreads(){
+			registeredThreads.Clear();
 		}
 	}
 }

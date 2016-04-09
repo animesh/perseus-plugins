@@ -2,28 +2,33 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
-using BaseLib.Param;
-using BaseLib.Parse;
+using BaseLibS.Param;
+using BaseLibS.Parse;
+using BaseLibS.Util;
+using Calc;
+using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
 using PerseusApi.Utils;
-using PerseusPluginLib.Properties;
 
 namespace PerseusPluginLib.Load{
 	public class GenericMatrixUpload : IMatrixUpload{
-		public bool HasButton { get { return true; } }
-		public Bitmap DisplayImage { get { return Resources.upload64; } }
-		public string Name { get { return "Generic matrix upload"; } }
-		public bool IsActive { get { return true; } }
-		public float DisplayOrder { get { return 0; } }
-		public string HelpDescription{
-			get{
-				return
-					"Load data from a tab-separated file. The first row should contain the column names, also separated by tab characters. " +
-						"All following rows contain the tab-separated values. Such a file can for instance be generated from an excen sheet by " +
-						"using the export as a tab-separated .txt file.";
-			}
-		}
+		public bool HasButton => true;
+		public Bitmap DisplayImage => BaseLib.Properties.Resources.upload64;
+		public string Name => "Generic matrix upload";
+		public bool IsActive => true;
+		public float DisplayRank => 0;
+		public string[] HelpSupplTables => new string[0];
+		public int NumSupplTables => 0;
+		public string[] HelpDocuments => new string[0];
+		public int NumDocuments => 0;
+		public string Url => "http://coxdocs.org/doku.php?id=perseus:user:activities:MatrixUpload:GenericMatrixUpload";
+
+		public string Description
+			=>
+				"Load data from a tab-separated file. The first row should contain the column names, also separated by tab characters. " +
+				"All following rows contain the tab-separated values. Such a file can for instance be generated from an excel sheet by " +
+				"using the export as a tab-separated .txt file.";
 
 		public int GetMaxThreads(Parameters parameters){
 			return 1;
@@ -33,13 +38,14 @@ namespace PerseusPluginLib.Load{
 			return
 				new Parameters(new Parameter[]{
 					new PerseusLoadMatrixParam("File"){
-						Filter = "Text (Tab delimited) (*.txt)|*.txt|CSV (Comma delimited) (*.csv)|*.csv",
+						Filter = "Text (Tab delimited) (*.txt;*.tsv)|*.txt;*.txt.gz;*.tsv;*.tsv.gz|CSV (Comma delimited) (*.csv)|*.csv;*.csv.gz",
 						Help = "Please specify here the name of the file to be uploaded including its full path."
 					}
 				});
 		}
 
-		public void LoadData(IMatrixData mdata, Parameters parameters, ProcessInfo processInfo){
+		public void LoadData(IMatrixData mdata, Parameters parameters, ref IMatrixData[] supplTables,
+			ref IDocumentData[] documents, ProcessInfo processInfo){
 			PerseusLoadMatrixParam par = (PerseusLoadMatrixParam) parameters.GetParam("File");
 			string filename = par.Filename;
 			if (string.IsNullOrEmpty(filename)){
@@ -50,7 +56,8 @@ namespace PerseusPluginLib.Load{
 				processInfo.ErrString = "File '" + filename + "' does not exist.";
 				return;
 			}
-			bool csv = filename.ToLower().EndsWith(".csv");
+			string ftl = filename.ToLower();
+			bool csv = ftl.EndsWith(".csv") || ftl.EndsWith(".csv.gz");
 			char separator = csv ? ',' : '\t';
 			string[] colNames;
 			Dictionary<string, string[]> annotationRows = new Dictionary<string, string[]>();
@@ -61,17 +68,45 @@ namespace PerseusPluginLib.Load{
 				processInfo.ErrString = "Could not open the file '" + filename + "'. It is probably opened in another program.";
 				return;
 			}
-			TextReader reader = new StreamReader(filename);
-			int nrows = TabSep.GetRowCount(filename, 0, PerseusUtils.commentPrefix, PerseusUtils.commentPrefixExceptions);
 			string origin = filename;
-			int[] eInds = par.ExpressionColumnIndices;
-			int[] cInds = par.CategoryColumnIndices;
+			int[] eInds = par.MainColumnIndices;
 			int[] nInds = par.NumericalColumnIndices;
+			int[] cInds = par.CategoryColumnIndices;
 			int[] tInds = par.TextColumnIndices;
 			int[] mInds = par.MultiNumericalColumnIndices;
-			PerseusUtils.LoadMatrixData(annotationRows, eInds, cInds, nInds, tInds, mInds, processInfo, colNames, mdata, reader, nrows,
-				origin, separator);
+			List<Tuple<Relation[], int[], bool>> filters = new List<Tuple<Relation[], int[], bool>>();
+			string errString;
+			foreach (Parameters p in par.MainFilterParameters){
+				PerseusUtils.AddFilter(filters, p, eInds, out errString);
+				if (errString != null){
+					processInfo.ErrString = errString;
+					return;
+				}
+			}
+			foreach (Parameters p in par.NumericalFilterParameters){
+				PerseusUtils.AddFilter(filters, p, nInds, out errString);
+				if (errString != null){
+					processInfo.ErrString = errString;
+					return;
+				}
+			}
+			int nrows = GetRowCount(filename, eInds, filters, separator);
+			StreamReader reader = FileUtils.GetReader(filename);
+			StreamReader auxReader = FileUtils.GetReader(filename);
+			PerseusUtils.LoadMatrixData(annotationRows, eInds, cInds, nInds, tInds, mInds, processInfo, colNames, mdata, reader,
+				auxReader, nrows, origin, separator, par.ShortenExpressionColumnNames, filters);
+			reader.Close();
+			auxReader.Close();
 			GC.Collect();
+		}
+
+		private static int GetRowCount(string filename, int[] mainColIndices, List<Tuple<Relation[], int[], bool>> filters,
+			char separator){
+			StreamReader reader = FileUtils.GetReader(filename);
+			StreamReader auxReader = FileUtils.GetReader(filename);
+			int count = PerseusUtils.GetRowCount(reader, auxReader, mainColIndices, filters, separator);
+			reader.Close();
+			return count;
 		}
 	}
 }

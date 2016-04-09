@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
-using BaseLib.Util;
+using BaseLibS.Util;
 using PerseusApi.Generic;
 
 namespace PerseusApi.Document{
-	public interface IDocumentData : IData{
+	public interface IDocumentData : IDataWithAnnotationRows{
 		List<string> Text { get; set; }
 		List<string> Header { get; set; }
 		List<DocumentType> Type { get; set; }

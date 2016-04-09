@@ -1,36 +1,46 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using BaseLib.Param;
+using BaseLibS.Param;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
 
 namespace PerseusPluginLib.Quality{
 	public class CreateQualityMatrix : IMatrixProcessing{
-		public bool HasButton { get { return false; } }
-		public Bitmap DisplayImage { get { return null; } }
-		public string HelpDescription { get { return ""; } }
-		public string HelpOutput { get { return ""; } }
-		public string[] HelpSupplTables { get { return new string[0]; } }
-		public int NumSupplTables { get { return 0; } }
-		public string Name { get { return "Create quality matrix"; } }
-		public string Heading { get { return "Quality"; } }
-		public bool IsActive { get { return true; } }
-		public float DisplayOrder { get { return 0; } }
-		public string[] HelpDocuments { get { return new string[0]; } }
-		public int NumDocuments { get { return 0; } }
+		public bool HasButton => false;
+		public Bitmap DisplayImage => null;
 
-		public int GetMaxThreads(Parameters parameters) {
+		public string Description
+			=>
+				"Create a matrix of quality values from a set of numerical columns. There has to " +
+				"be one numerical column per expression column.";
+
+		public string HelpOutput => "";
+		public string[] HelpSupplTables => new string[0];
+		public int NumSupplTables => 0;
+		public string Name => "Create quality matrix";
+		public string Heading => "Quality";
+		public bool IsActive => true;
+		public float DisplayRank => 0;
+		public string[] HelpDocuments => new string[0];
+		public int NumDocuments => 0;
+
+		public int GetMaxThreads(Parameters parameters){
 			return 1;
 		}
 
-		public Parameters GetParameters(IMatrixData mdata, ref string errorString) {
-			string[] reducedExpColNames = ReduceNames(mdata.ExpressionColumnNames);
+		public string Url
+			=> "http://coxdocs.org/doku.php?id=perseus:user:activities:MatrixProcessing:Quality:CreateQualityMatrix";
+
+		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
+			string[] reducedExpColNames = ReduceNames(mdata.ColumnNames);
 			List<Parameter> p = new List<Parameter>();
-			for (int i = 0; i < mdata.ExpressionColumnCount; i++){
-				SingleChoiceParam scp = new SingleChoiceParam(mdata.ExpressionColumnNames[i])
-				{Values = mdata.NumericColumnNames, Value = GetSelectedValue(mdata.NumericColumnNames, reducedExpColNames[i])};
+			for (int i = 0; i < mdata.ColumnCount; i++){
+				SingleChoiceParam scp = new SingleChoiceParam(mdata.ColumnNames[i]){
+					Values = mdata.NumericColumnNames,
+					Value = GetSelectedValue(mdata.NumericColumnNames, reducedExpColNames[i])
+				};
 				p.Add(scp);
 			}
 			return new Parameters(p);
@@ -38,15 +48,15 @@ namespace PerseusPluginLib.Quality{
 
 		public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables,
 			ref IDocumentData[] documents, ProcessInfo processInfo){
-			float[,] q = new float[mdata.RowCount,mdata.ExpressionColumnCount];
-			for (int j = 0; j < mdata.ExpressionColumnCount; j++){
-				int ind = param.GetSingleChoiceParam(mdata.ExpressionColumnNames[j]).Value;
+			float[,] q = new float[mdata.RowCount, mdata.ColumnCount];
+			for (int j = 0; j < mdata.ColumnCount; j++){
+				int ind = param.GetParam<int>(mdata.ColumnNames[j]).Value;
 				double[] w = mdata.NumericColumns[ind];
 				for (int i = 0; i < mdata.RowCount; i++){
 					q[i, j] = (float) w[i];
 				}
 			}
-			mdata.QualityValues = q;
+			mdata.Quality.Set(q);
 			mdata.QualityBiggerIsBetter = false;
 		}
 

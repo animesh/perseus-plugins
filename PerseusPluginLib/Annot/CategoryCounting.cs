@@ -3,32 +3,35 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using BaseLib.Param;
-using BaseLib.Util;
+using BaseLibS.Num;
+using BaseLibS.Param;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
 
 namespace PerseusPluginLib.Annot{
 	public class CategoryCounting : IMatrixProcessing{
-		public bool HasButton { get { return false; } }
-		public Bitmap DisplayImage { get { return null; } }
-		public string HelpDescription { get { return ""; } }
-		public string HelpOutput { get { return ""; } }
-		public string[] HelpSupplTables { get { return new string[0]; } }
-		public int NumSupplTables { get { return 0; } }
-		public string Name { get { return "Category counting"; } }
-		public string Heading { get { return "Annot. columns"; } }
-		public bool IsActive { get { return true; } }
-		public float DisplayOrder { get { return 3; } }
-		public string[] HelpDocuments { get { return new string[0]; } }
-		public int NumDocuments { get { return 0; } }
+		public bool HasButton => false;
+		public Bitmap DisplayImage => null;
+		public string Description => "For each term in a categorical column one counts the number of occurrences.";
+		public string HelpOutput => "";
+		public string[] HelpSupplTables => new string[0];
+		public int NumSupplTables => 0;
+		public string Name => "Category counting";
+		public string Heading => "Annot. columns";
+		public bool IsActive => true;
+		public float DisplayRank => 3;
+		public string[] HelpDocuments => new string[0];
+		public int NumDocuments => 0;
 
-		public int GetMaxThreads(Parameters parameters) {
+		public string Url
+			=> "http://coxdocs.org/doku.php?id=perseus:user:activities:MatrixProcessing:Annotcolumns:CategoryCounting";
+
+		public int GetMaxThreads(Parameters parameters){
 			return 1;
 		}
 
-		public Parameters GetParameters(IMatrixData mdata, ref string errorString) {
+		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
 			List<string> choice = mdata.CategoryColumnNames;
 			int[] selection = ArrayUtils.ConsecutiveInts(choice.Count);
 			string[] sel = ArrayUtils.Concat(mdata.CategoryColumnNames.ToArray(), "<None>");
@@ -41,10 +44,10 @@ namespace PerseusPluginLib.Annot{
 
 		public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables,
 			ref IDocumentData[] documents, ProcessInfo processInfo){
-			int minCount = param.GetIntParam("Min. count").Value;
-			int selCol = param.GetSingleChoiceParam("Selection").Value;
-			string value = param.GetStringParam("Value").Value;
-			int[] catIndices = param.GetMultiChoiceParam("Categories").Value;
+			int minCount = param.GetParam<int>("Min. count").Value;
+			int selCol = param.GetParam<int>("Selection").Value;
+			string value = param.GetParam<string>("Value").Value;
+			int[] catIndices = param.GetParam<int[]>("Categories").Value;
 			bool[] selection = null;
 			if (selCol < mdata.CategoryColumnCount){
 				selection = new bool[mdata.RowCount];
@@ -86,7 +89,7 @@ namespace PerseusPluginLib.Annot{
 					selPerc.Add(Math.Round(1000.0*c1/c)/10.0);
 				}
 			}
-			float[,] ex = new float[type.Count,0];
+			float[,] ex = new float[type.Count, 0];
 			List<string[][]> catCols = new List<string[][]>{type.ToArray(), name.ToArray()};
 			List<string> catColNames = new List<string>(new[]{"Type", "Name"});
 			List<double[]> numCols = new List<double[]>{count.ToArray(), percOfTotal.ToArray()};
@@ -98,11 +101,15 @@ namespace PerseusPluginLib.Annot{
 			if (selection != null){
 				numColNames.AddRange(new[]{"Selection count", "Selection percentage"});
 			}
-			data.SetData("Count", new List<string>(), ex, new List<string>(), new List<string[]>(), catColNames, catCols,
-				numColNames, numCols, new List<string>(), new List<double[][]>());
+			data.Name = "Count";
+			data.ColumnNames = new List<string>();
+			data.Values.Set(ex);
+			data.SetAnnotationColumns(new List<string>(), new List<string[]>(), catColNames, catCols, numColNames, numCols,
+				new List<string>(), new List<double[][]>());
 		}
 
-		public static CountingResult CountCategories(IMatrixData data, bool[] selection, int selCol, int[] catIndices){
+		private static CountingResult CountCategories(IMatrixData data, bool[] selection, int selCol,
+			IEnumerable<int> catIndices){
 			CountingResult result = new CountingResult();
 			foreach (int i in catIndices.Where(i => i != selCol)){
 				CountTerms(data.CategoryColumnNames[i], data.GetCategoryColumnAt(i), result, selection);
