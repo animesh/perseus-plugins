@@ -1,29 +1,26 @@
 ﻿using PerseusApi.Matrix;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using PerseusApi.Document;
 using PerseusApi.Generic;
+using BaseLibS.Param;
 
 namespace PluginANN
 {
     class BackProp : IMatrixProcessing
     {
+
+        public string Name
+        {
+            get
+            {
+                return "BP";
+            }
+        }
+
         public string Description
         {
             get
             {
-                throw new NotImplementedException();
-            }
-        }
-
-        public System.Drawing.Bitmap DisplayImage
-        {
-            get
-            {
-                throw new NotImplementedException();
+                return "Back Propagation";
             }
         }
 
@@ -31,47 +28,7 @@ namespace PluginANN
         {
             get
             {
-                throw new NotImplementedException();
-            }
-        }
-
-        public bool HasButton
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        public string Heading
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        public string[] HelpDocuments
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        public string HelpOutput
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        public string[] HelpSupplTables
-        {
-            get
-            {
-                throw new NotImplementedException();
+                return 42;
             }
         }
 
@@ -79,23 +36,65 @@ namespace PluginANN
         {
             get
             {
-                throw new NotImplementedException();
+                return true;
             }
         }
 
-        public string Name
+        public bool HasButton
         {
             get
             {
-                throw new NotImplementedException();
+                return false;
             }
         }
+
+        public System.Drawing.Bitmap DisplayImage
+        {
+            get
+            {
+                return null;
+            }
+        }
+
+        public string Heading
+        {
+            get
+            {
+                return "ArtNN";
+            }
+        }
+
+        public string[] HelpDocuments
+        {
+            get
+            {
+                return new string[0];
+            }
+        }
+
+        public string HelpOutput
+        {
+            get
+            {
+                return "";
+            }
+        }
+
+        public string[] HelpSupplTables
+        {
+            get
+            {
+                return new string[0];
+            }
+        }
+
+
 
         public int NumDocuments
         {
             get
             {
-                throw new NotImplementedException();
+                return 0;
             }
         }
 
@@ -103,7 +102,7 @@ namespace PluginANN
         {
             get
             {
-                throw new NotImplementedException();
+                return 0;
             }
         }
 
@@ -111,23 +110,31 @@ namespace PluginANN
         {
             get
             {
-                throw new NotImplementedException();
+               return "fuzzyliferg";
             }
         }
 
-        public int GetMaxThreads(global::BaseLibS.Param.Parameters parameters)
+        public int GetMaxThreads(Parameters parameters)
         {
-            throw new NotImplementedException();
+            return 1;
         }
 
-        public global::BaseLibS.Param.Parameters GetParameters(IMatrixData mdata, ref string errString)
+        public Parameters GetParameters(IMatrixData mdata, ref string errString)
         {
-            throw new NotImplementedException();
+            return new Parameters(new DoubleParam("factor",1));
         }
 
-        public void ProcessData(IMatrixData mdata, global::BaseLibS.Param.Parameters param, ref IMatrixData[] supplTables, ref IDocumentData[] documents, ProcessInfo processInfo)
+        public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables, ref IDocumentData[] documents, ProcessInfo processInfo)
         {
-            throw new NotImplementedException();
+            double fctr = param.GetParam<double>("factor").Value;
+            for (int i = 0;i< mdata.RowCount;i++)
+                {
+                    for (int j = 0;j< mdata.ColumnCount;j++)
+                        {
+                        //    mdata.Values[i, j] += (float)fctr;
+                            mdata.Values[i, j] = (float)1.3232;
+                    }
+            }
         }
     }
 }
