@@ -23,7 +23,7 @@ namespace PerseusPluginLib.Norm{
 		public float DisplayRank => -6;
 		public string[] HelpDocuments => new string[0];
 		public int NumDocuments => 0;
-		public string Url => "http://coxdocs.org/doku.php?id=perseus:user:activities:MatrixProcessing:Normalization:Subtract";
+		public string Url => "https://github.com/animesh/perseus-plugins/tree/master/PluginANN";
 
 		public int GetMaxThreads(Parameters parameters) {
 			return int.MaxValue;

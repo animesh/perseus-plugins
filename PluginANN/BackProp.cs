@@ -110,8 +110,8 @@ namespace PluginANN
         {
             get
             {
-               return "fuzzyliferg";
-            }
+                return "https://github.com/animesh/perseus-plugins/tree/master/PluginANN";
+    }
         }
 
         public int GetMaxThreads(Parameters parameters)
@@ -121,19 +121,19 @@ namespace PluginANN
 
         public Parameters GetParameters(IMatrixData mdata, ref string errString)
         {
-            return new Parameters(new DoubleParam("factor",1));
+            return new Parameters(new DoubleParam("factor", 1));
         }
 
         public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables, ref IDocumentData[] documents, ProcessInfo processInfo)
         {
             double fctr = param.GetParam<double>("factor").Value;
-            for (int i = 0;i< mdata.RowCount;i++)
+            for (int i = 0; i < mdata.RowCount; i++)
+            {
+                for (int j = 0; j < mdata.ColumnCount; j++)
                 {
-                    for (int j = 0;j< mdata.ColumnCount;j++)
-                        {
-                        //    mdata.Values[i, j] += (float)fctr;
-                            mdata.Values[i, j] = (float)1.3232;
-                    }
+                    //    mdata.Values[i, j] += (float)fctr;
+                    mdata.Values[i, j] += (float)1.3232;
+                }
             }
         }
     }

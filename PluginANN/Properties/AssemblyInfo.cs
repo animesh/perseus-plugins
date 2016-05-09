@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("PluginANN")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("NTNU DMF")]
+[assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("PluginANN")]
-[assembly: AssemblyCopyright("Copyright © NTNU DMF 2016")]
+[assembly: AssemblyCopyright("Copyright ©  2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("83250a4a-2b32-41f8-9dad-60372e4b95a0")]
+[assembly: Guid("8adf9b9c-f075-4199-bf19-88372d23e41e")]
 
 // Version information for an assembly consists of the following four values:
 //
