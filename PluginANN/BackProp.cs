@@ -132,7 +132,7 @@ namespace PluginANN
                 for (int j = 0; j < mdata.ColumnCount; j++)
                 {
                     //    mdata.Values[i, j] += (float)fctr;
-                    mdata.Values[i, j] += (float)1.3232;
+                    mdata.Values[i, j] += (float)fctr;
                 }
             }
         }
