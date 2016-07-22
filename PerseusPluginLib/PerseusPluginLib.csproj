@@ -151,12 +151,6 @@
     <Compile Include="Utils\RowNameInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\PerseusApi\PerseusApi.csproj">
-      <Project>{E92A537F-69F8-47D1-81CD-F7292CC021D2}</Project>
-      <Name>PerseusApi</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>

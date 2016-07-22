@@ -31,7 +31,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="BaseLibS">
-      <HintPath>..\DLLs\BaseLibS.dll</HintPath>
+      <HintPath>F:\promec\MaxQuantSS\software\Perseus\BaseLibS.dll</HintPath>
+    </Reference>
+    <Reference Include="PerseusApi, Version=1.4.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>F:\promec\MaxQuantSS\software\Perseus\PerseusApi.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -46,12 +50,6 @@
   <ItemGroup>
     <Compile Include="BackProp.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\PerseusApi\PerseusApi.csproj">
-      <Project>{E92A537F-69F8-47D1-81CD-F7292CC021D2}</Project>
-      <Name>PerseusApi</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
