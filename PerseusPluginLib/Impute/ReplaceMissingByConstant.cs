@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.Drawing;
+using BaseLibS.Graph;
 using BaseLibS.Num;
 using BaseLibS.Param;
 using PerseusApi.Document;
@@ -9,7 +9,7 @@ using PerseusApi.Matrix;
 namespace PerseusPluginLib.Impute{
 	public class ReplaceMissingByConstant : IMatrixProcessing{
 		public bool HasButton => false;
-		public Bitmap DisplayImage => null;
+		public Bitmap2 DisplayImage => null;
 		public string Description => "Replaces all missing values in the main columns with a constant.";
 		public string HelpOutput => "Same matrix but with missing values replaced.";
 		public string[] HelpSupplTables => new string[0];
@@ -46,20 +46,18 @@ namespace PerseusPluginLib.Impute{
 
 		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
 			return
-				new Parameters(new Parameter[]{
-					new DoubleParam("Value", 0){Help = "The value that is going to be filled in for missing values."},
+				new Parameters(new DoubleParam("Value", 0){Help = "The value that is going to be filled in for missing values."},
 					new MultiChoiceParam("Columns", ArrayUtils.ConsecutiveInts(mdata.ColumnCount)){
 						Values = ArrayUtils.Concat(mdata.ColumnNames, mdata.NumericColumnNames)
-					}
-				});
+					});
 		}
 
 		private static void ReplaceMissingsByVal(float value, IMatrixData data, IEnumerable<int> mainInds,
 			IEnumerable<int> numInds){
 			foreach (int j in mainInds){
 				for (int i = 0; i < data.RowCount; i++){
-					if (float.IsNaN(data.Values[i, j])){
-						data.Values[i, j] = value;
+					if (float.IsNaN(data.Values.Get(i, j))){
+						data.Values.Set(i, j, value);
 						data.IsImputed[i, j] = true;
 					}
 				}

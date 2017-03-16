@@ -1,12 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
+using BaseLibS.Graph;
 using BaseLibS.Num;
 using BaseLibS.Param;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
-using PerseusPluginLib.Properties;
 using PerseusPluginLib.Utils;
 
 namespace PerseusPluginLib.Filter{
@@ -22,7 +21,7 @@ namespace PerseusPluginLib.Filter{
 
 	public class FilterValidValuesRows : IMatrixProcessing{
 		public bool HasButton => true;
-		public Bitmap DisplayImage => Resources.missingsButton_Image;
+		public Bitmap2 DisplayImage => PerseusPluginUtils.GetImage("missingsButton.Image.png");
 		public string Name => "Filter rows based on valid values";
 		public string Heading => "Filter rows";
 		public bool IsActive => true;
@@ -86,7 +85,7 @@ namespace PerseusPluginLib.Filter{
 							totals[groupInds[j][k]]++;
 						}
 					}
-					if (PerseusPluginUtils.IsValid(mdata.Values[i, j], threshold, threshold2, filterMode)){
+					if (PerseusPluginUtils.IsValid(mdata.Values.Get(i, j), threshold, threshold2, filterMode)){
 						for (int k = 0; k < groupInds[j].Length; k++){
 							if (groupInds[j][k] >= 0){
 								counts[groupInds[j][k]]++;

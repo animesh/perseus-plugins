@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.Drawing;
+using BaseLibS.Graph;
 using BaseLibS.Num;
 using BaseLibS.Param;
 using PerseusApi.Document;
@@ -9,7 +9,7 @@ using PerseusApi.Matrix;
 namespace PerseusPluginLib.Basic{
 	public class SummaryStatisticsColumns : IMatrixProcessing{
 		public bool HasButton => false;
-		public Bitmap DisplayImage => null;
+		public Bitmap2 DisplayImage => null;
 		public string Name => "Summary statistics (columns)";
 		public string Heading => "Basic";
 		public bool IsActive => true;
@@ -159,7 +159,7 @@ namespace PerseusPluginLib.Basic{
 			if (col < mdata.ColumnCount){
 				List<double> v = new List<double>();
 				for (int j = 0; j < mdata.RowCount; j++){
-					double x = mdata.Values[j, col];
+					double x = mdata.Values.Get(j, col);
 					if (!double.IsNaN(x) && !double.IsInfinity(x)){
 						v.Add(x);
 					}

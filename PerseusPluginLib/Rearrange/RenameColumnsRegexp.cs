@@ -1,5 +1,7 @@
-using System.Drawing;
+using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using BaseLibS.Graph;
 using BaseLibS.Param;
 using PerseusApi.Document;
 using PerseusApi.Generic;
@@ -8,7 +10,7 @@ using PerseusApi.Matrix;
 namespace PerseusPluginLib.Rearrange{
 	public class RenameColumnsRegexp : IMatrixProcessing{
 		public bool HasButton => false;
-		public Bitmap DisplayImage => null;
+		public Bitmap2 DisplayImage => null;
 
 		public string Description
 			=> "Rename expression columns with the help of matching part of the name by a regular expression.";
@@ -32,28 +34,17 @@ namespace PerseusPluginLib.Rearrange{
 
 		public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables,
 			ref IDocumentData[] documents, ProcessInfo processInfo){
-			string regexStr = param.GetParam<string>("Regular expression").Value;
-			Regex regex = new Regex(regexStr);
+			var vals = param.GetParam<Tuple<Regex, string>>("Regex").Value;
+		    var pattern = vals.Item1;
+		    string replacementStr = vals.Item2;
 			for (int i = 0; i < mdata.ColumnCount; i++){
-				string newName = regex.Match(mdata.ColumnNames[i]).Groups[1].ToString();
-				if (string.IsNullOrEmpty(newName)){
-					processInfo.ErrString = "Applying parse rule to '" + mdata.ColumnNames[i] + "' results in an empty string.";
-					return;
-				}
-				mdata.ColumnNames[i] = newName;
+				mdata.ColumnNames[i] = pattern.Replace(mdata.ColumnNames[i], replacementStr);
 			}
 		}
 
 		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
 			return
-				new Parameters(new Parameter[]{
-					new StringParam("Regular expression"){
-						Help =
-							"The regular expression that determines how the new column names are created from the old " +
-							"column names. As an example if you want to transform 'Ratio H/L Normalized Something' " +
-							"into 'Something' the suitable regular expression is 'Ratio H/L Normalized (.*)'"
-					}
-				});
+				new Parameters(new RegexReplaceParam("Regex", new Regex("Column (.*)"), "$1", mdata.ColumnNames));
 		}
 	}
 }

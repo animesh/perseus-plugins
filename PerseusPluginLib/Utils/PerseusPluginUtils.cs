@@ -1,5 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
+using BaseLibS.Graph;
+using BaseLibS.Graph.Image;
 using BaseLibS.Num;
 using BaseLibS.Param;
 using PerseusApi.Matrix;
@@ -130,14 +134,10 @@ namespace PerseusPluginLib.Utils{
 						{new DoubleParam("Maximum", 0){Help = "Value defining which entry is counted as a valid value."}}),
 						new Parameters(new Parameter[]
 						{new DoubleParam("Maximum", 0){Help = "Value defining which entry is counted as a valid value."}}),
-						new Parameters(new Parameter[]{
-							new DoubleParam("Minimum", 0){Help = "Value defining which entry is counted as a valid value."},
-							new DoubleParam("Maximum", 0){Help = "Value defining which entry is counted as a valid value."}
-						}),
-						new Parameters(new Parameter[]{
-							new DoubleParam("Minimum", 0){Help = "Value defining which entry is counted as a valid value."},
-							new DoubleParam("Maximum", 0){Help = "Value defining which entry is counted as a valid value."}
-						})
+						new Parameters(new DoubleParam("Minimum", 0){Help = "Value defining which entry is counted as a valid value."},
+							new DoubleParam("Maximum", 0){Help = "Value defining which entry is counted as a valid value."}),
+						new Parameters(new DoubleParam("Minimum", 0){Help = "Value defining which entry is counted as a valid value."},
+							new DoubleParam("Maximum", 0){Help = "Value defining which entry is counted as a valid value."})
 					},
 				ParamNameWidth = 50,
 				TotalWidth = 731
@@ -171,7 +171,7 @@ namespace PerseusPluginLib.Utils{
 				for (int i = 0; i < mdata.RowCount; i++){
 					int count = 0;
 					for (int j = 0; j < mdata.ColumnCount; j++){
-						if (IsValid(mdata.Values[i, j], threshold, threshold2, filterMode)){
+						if (IsValid(mdata.Values.Get(i, j), threshold, threshold2, filterMode)){
 							count++;
 						}
 					}
@@ -185,7 +185,7 @@ namespace PerseusPluginLib.Utils{
 				for (int j = 0; j < mdata.ColumnCount; j++){
 					int count = 0;
 					for (int i = 0; i < mdata.RowCount; i++){
-						if (IsValid(mdata.Values[i, j], threshold, threshold2, filterMode)){
+						if (IsValid(mdata.Values.Get(i, j), threshold, threshold2, filterMode)){
 							count++;
 						}
 					}
@@ -452,6 +452,17 @@ namespace PerseusPluginLib.Utils{
 				result[o[i]] = new[]{"+"};
 			}
 			return result;
+		}
+
+		public static Bitmap2 GetImage(string file){
+			Assembly thisExe = Assembly.GetExecutingAssembly();
+			Stream file1 = thisExe.GetManifestResourceStream("PerseusPluginLib.img." + file);
+			if (file1 == null){
+				return null;
+			}
+			Bitmap2 bm = Image2.ReadImage(file1);
+			file1.Close();
+			return bm;
 		}
 	}
 }

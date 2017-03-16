@@ -1,16 +1,15 @@
 using System.Collections.Generic;
-using System.Drawing;
+using BaseLibS.Graph;
 using BaseLibS.Param;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
-using PerseusPluginLib.Properties;
 using PerseusPluginLib.Utils;
 
 namespace PerseusPluginLib.Filter{
 	public class FilterCategoricalColumn : IMatrixProcessing{
 		public bool HasButton => true;
-		public Bitmap DisplayImage => Resources.filter2;
+		public Bitmap2 DisplayImage => PerseusPluginUtils.GetImage("filter2.png");
 
 		public string Description
 			=> "Those rows are kept or removed that have the specified value in the selected categorical column.";
@@ -46,22 +45,18 @@ namespace PerseusPluginLib.Filter{
 					});
 			}
 			return
-				new Parameters(new Parameter[]{
-					new SingleChoiceWithSubParams("Column"){
-						Values = mdata.CategoryColumnNames,
-						SubParams = subParams,
-						Help = "The categorical column that the filtering should be based on.",
-						ParamNameWidth = 50,
-						TotalWidth = 731
-					},
-					new SingleChoiceParam("Mode"){
-						Values = new[]{"Remove matching rows", "Keep matching rows"},
-						Help =
-							"If 'Remove matching rows' is selected, rows having the values specified above will be removed while " +
-							"all other rows will be kept. If 'Keep matching rows' is selected, the opposite will happen."
-					},
-					PerseusPluginUtils.GetFilterModeParam(true)
-				});
+				new Parameters(new SingleChoiceWithSubParams("Column"){
+					Values = mdata.CategoryColumnNames,
+					SubParams = subParams,
+					Help = "The categorical column that the filtering should be based on.",
+					ParamNameWidth = 50,
+					TotalWidth = 731
+				}, new SingleChoiceParam("Mode"){
+					Values = new[]{"Remove matching rows", "Keep matching rows"},
+					Help =
+						"If 'Remove matching rows' is selected, rows having the values specified above will be removed while " +
+						"all other rows will be kept. If 'Keep matching rows' is selected, the opposite will happen."
+				}, PerseusPluginUtils.GetFilterModeParam(true));
 		}
 
 		public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables,

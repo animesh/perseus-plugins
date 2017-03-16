@@ -49,31 +49,45 @@
     <Reference Include="Calc">
       <HintPath>..\DLLs\Calc.dll</HintPath>
     </Reference>
-    <Reference Include="NumPluginSvm">
-      <HintPath>..\DLLs\NumPluginSvm.dll</HintPath>
-    </Reference>
-    <Reference Include="PresentationCore" />
-    <Reference Include="PresentationFramework" />
     <Reference Include="System" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
-    <Reference Include="System.Xaml" />
-    <Reference Include="WindowsBase" />
-    <Reference Include="WindowsFormsIntegration" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Annot\AddAnnotationToMatrix.cs" />
+    <Compile Include="Annot\AverageCategories.cs" />
+    <Compile Include="Annot\BackToBaseIdentifiers.cs" />
     <Compile Include="Annot\CategoryCounting.cs" />
     <Compile Include="Annot\CountingResult.cs" />
     <Compile Include="Basic\CloneProcessing.cs" />
     <Compile Include="Basic\CombineAnnotations.cs" />
     <Compile Include="Basic\CombineByIdentifiersProcessing.cs" />
     <Compile Include="Basic\AddNoise.cs" />
+    <Compile Include="Basic\DeHyphenateIds.cs" />
     <Compile Include="Filter\FilterNumericalColumn.cs" />
+    <Compile Include="Join\ReplaceStrings.cs" />
     <Compile Include="Load\CreateGeneList.cs" />
     <Compile Include="Load\CreateRandomMatrix.cs" />
-    <Compile Include="Manual\SelectRowsManuallyControl1.xaml.cs">
-      <DependentUpon>SelectRowsManuallyControl1.xaml</DependentUpon>
+    <Compile Include="Load\PerseusLoadMatrixControl.cs">
+      <SubType>UserControl</SubType>
     </Compile>
+    <Compile Include="Load\PerseusLoadMatrixControl.Designer.cs">
+      <DependentUpon>PerseusLoadMatrixControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Manual\SelectRowsManuallyControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Manual\SelectRowsManuallyControl.Designer.cs">
+      <DependentUpon>SelectRowsManuallyControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Mods\AddKnownSites.cs" />
+    <Compile Include="Mods\AddModificationCounts.cs" />
+    <Compile Include="Mods\AddRegulatorySites.cs" />
+    <Compile Include="Mods\AddSequenceFeatures.cs" />
+    <Compile Include="Mods\ExpandSiteTable.cs" />
+    <Compile Include="Mods\KinaseSubstrateRelations.cs" />
+    <Compile Include="Mods\ShortenMotifs.cs" />
     <Compile Include="Norm\UnZScore.cs" />
     <Compile Include="Rearrange\CombineCategoricalColumns.cs" />
     <Compile Include="Basic\DensityEstimationProcessing.cs" />
@@ -104,9 +118,6 @@
     <Compile Include="Load\BinaryUpload.cs" />
     <Compile Include="Load\GenericMatrixUpload.cs" />
     <Compile Include="Load\PerseusLoadMatrixParam.cs" />
-    <Compile Include="Load\PerseusLoadMatrixControl.xaml.cs">
-      <DependentUpon>PerseusLoadMatrixControl.xaml</DependentUpon>
-    </Compile>
     <Compile Include="Load\UnstructuredTxtUpload.cs" />
     <Compile Include="Manual\MatrixDataTable.cs" />
     <Compile Include="Manual\SelectRowsManually.cs" />
@@ -151,6 +162,18 @@
     <Compile Include="Utils\RowNameInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\PerseusApi\PerseusApi.csproj">
+      <Project>{E92A537F-69F8-47D1-81CD-F7292CC021D2}</Project>
+      <Name>PerseusApi</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Load\PerseusLoadMatrixControl.resx">
+      <DependentUpon>PerseusLoadMatrixControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Manual\SelectRowsManuallyControl.resx">
+      <DependentUpon>SelectRowsManuallyControl.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -206,16 +229,6 @@
     <None Include="Resources\average.png" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="Load\PerseusLoadMatrixControl.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Manual\SelectRowsManuallyControl1.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Resources\raw.png" />
   </ItemGroup>
   <ItemGroup>
@@ -232,6 +245,31 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\list.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\network.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="img\average.png" />
+    <EmbeddedResource Include="img\binary.png" />
+    <EmbeddedResource Include="img\combineButton.Image.png" />
+    <EmbeddedResource Include="img\density.Image.png" />
+    <EmbeddedResource Include="img\filter2.png" />
+    <EmbeddedResource Include="img\groupButton.Image.png" />
+    <EmbeddedResource Include="img\hand.png" />
+    <EmbeddedResource Include="img\histo.png" />
+    <EmbeddedResource Include="img\impute.png" />
+    <EmbeddedResource Include="img\list.png" />
+    <EmbeddedResource Include="img\logButton.Image.png" />
+    <EmbeddedResource Include="img\missingsButton.Image.png" />
+    <EmbeddedResource Include="img\network.png" />
+    <EmbeddedResource Include="img\quantiles.png" />
+    <EmbeddedResource Include="img\raw.png" />
+    <EmbeddedResource Include="img\Save-icon.png" />
+    <EmbeddedResource Include="img\saveGeneric.png" />
+    <EmbeddedResource Include="img\trendline.Image.png" />
+    <EmbeddedResource Include="img\uploadGeneric.png" />
+    <EmbeddedResource Include="img\zscoreButton.Image.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

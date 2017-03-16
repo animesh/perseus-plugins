@@ -1,8 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
+using BaseLibS.Graph;
 using BaseLibS.Num;
 using BaseLibS.Param;
 using PerseusApi.Document;
@@ -12,7 +12,7 @@ using PerseusApi.Matrix;
 namespace PerseusPluginLib.Annot{
 	public class CategoryCounting : IMatrixProcessing{
 		public bool HasButton => false;
-		public Bitmap DisplayImage => null;
+		public Bitmap2 DisplayImage => null;
 		public string Description => "For each term in a categorical column one counts the number of occurrences.";
 		public string HelpOutput => "";
 		public string[] HelpSupplTables => new string[0];
@@ -35,11 +35,9 @@ namespace PerseusPluginLib.Annot{
 			List<string> choice = mdata.CategoryColumnNames;
 			int[] selection = ArrayUtils.ConsecutiveInts(choice.Count);
 			string[] sel = ArrayUtils.Concat(mdata.CategoryColumnNames.ToArray(), "<None>");
-			return
-				new Parameters(new Parameter[]{
-					new MultiChoiceParam("Categories"){Values = choice, Value = selection}, new IntParam("Min. count", 1),
-					new SingleChoiceParam("Selection"){Values = sel, Value = sel.Length - 1}, new StringParam("Value", "+")
-				});
+			return new Parameters(new MultiChoiceParam("Categories"){Values = choice, Value = selection},
+				new IntParam("Min. count", 1), new SingleChoiceParam("Selection"){Values = sel, Value = sel.Length - 1},
+				new StringParam("Value", "+"));
 		}
 
 		public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables,

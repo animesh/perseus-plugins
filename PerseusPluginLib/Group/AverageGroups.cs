@@ -1,19 +1,18 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
+using BaseLibS.Graph;
 using BaseLibS.Num;
 using BaseLibS.Param;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
-using PerseusPluginLib.Properties;
 using PerseusPluginLib.Utils;
 
 namespace PerseusPluginLib.Group{
 	public class AverageGroups : IMatrixProcessing{
 		public bool HasButton => true;
-		public Bitmap DisplayImage => Resources.average;
-		public string HelpOutput => "Averaged expression matrix containing as many columns as there were groups defined.";
+		public Bitmap2 DisplayImage => PerseusPluginUtils.GetImage("average.png");
+		public string HelpOutput => "Averaged main matrix containing as many columns as there were groups defined.";
 		public string[] HelpSupplTables => new string[0];
 		public int NumSupplTables => 0;
 		public string Name => "Average groups";
@@ -31,27 +30,22 @@ namespace PerseusPluginLib.Group{
 			;
 
 		public string Description
-			=>
-				"Expression columns are averaged over groups. This requires that at least one categorical annotation row is defined."
-			;
+			=> "Main columns are averaged over groups. This requires that at least one categorical annotation row is defined.";
 
 		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
 			if (mdata.CategoryRowCount == 0){
 				errorString = "No grouping is loaded.";
 				return null;
 			}
-			return
-				new Parameters(new Parameter[]{
-					new SingleChoiceParam("Grouping"){Values = mdata.CategoryRowNames},
-					new SingleChoiceParam("Average type"){
-						Values = new[]{"Median", "Mean", "Sum", "Geometric mean"},
-						Help = "Select wether median or mean should be used for the averaging."
-					},
-					new IntParam("Min. valid values per group", 1), new BoolParam("Keep original data", false),
-					new SingleChoiceParam("Add variation"){
-						Values = new[]{"<None>", "Standard deviation", "Error of mean"},
-						Help = "Specify here if a measure of group-wise variation should be added as numerical columns."
-					}
+			return new Parameters(new SingleChoiceParam("Grouping"){Values = mdata.CategoryRowNames},
+				new SingleChoiceParam("Average type"){
+					Values = new[]{"Median", "Mean", "Sum", "Geometric mean"},
+					Help = "Select wether median or mean should be used for the averaging."
+				},
+				new IntParam("Min. valid values per group", 1), new BoolParam("Keep original data", false),
+				new SingleChoiceParam("Add variation"){
+					Values = new[]{"<None>", "Standard deviation", "Error of mean"},
+					Help = "Specify here if a measure of group-wise variation should be added as numerical columns."
 				});
 		}
 
@@ -107,7 +101,7 @@ namespace PerseusPluginLib.Group{
 					List<double> vals = new List<double>();
 					List<bool> imps = new List<bool>();
 					foreach (int ind in colInds[j]){
-						double val = mdata.Values[i, ind];
+						double val = mdata.Values.Get(i, ind);
 						if (!double.IsNaN(val) && !double.IsInfinity(val)){
 							vals.Add(val);
 							imps.Add(mdata.IsImputed[i, ind]);
@@ -158,7 +152,7 @@ namespace PerseusPluginLib.Group{
 				for (int j = 0; j < groupNames.Length; j++){
 					List<double> vals = new List<double>();
 					foreach (int ind in colInds[j]){
-						double val = mdata.Values[i, ind];
+						double val = mdata.Values.Get(i, ind);
 						if (!double.IsNaN(val) && !double.IsInfinity(val)){
 							vals.Add(val);
 						}
@@ -192,7 +186,7 @@ namespace PerseusPluginLib.Group{
 				for (int j = 0; j < groupNames.Length; j++){
 					List<double> vals = new List<double>();
 					foreach (int ind in colInds[j]){
-						double val = mdata.Values[i, ind];
+						double val = mdata.Values.Get(i, ind);
 						if (!double.IsNaN(val) && !double.IsInfinity(val)){
 							vals.Add(val);
 						}

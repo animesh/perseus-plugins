@@ -3,10 +3,10 @@ using BaseLibS.Param;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PerseusApi.Document;
 using PerseusApi.Matrix;
-using PerseusLib;
+using PerseusLibS;
 using PerseusPluginLib.Rearrange;
 
-namespace PerseusPluginLibTest.Rearrange{
+namespace PerseusPluginLib.Test.Rearrange{
 	/// <summary>
 	/// Testing the ProcessTextColumns class requires, at a minimum, a regular expression 
 	/// and MatrixData for it to act on. The private method TestRegex encapsulates nost

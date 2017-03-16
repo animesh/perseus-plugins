@@ -1,17 +1,17 @@
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
+using BaseLibS.Graph;
 using BaseLibS.Num;
 using BaseLibS.Param;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
-using PerseusPluginLib.Properties;
+using PerseusPluginLib.Utils;
 
 namespace PerseusPluginLib.Join{
 	public class MatchingColumnsByName : IMatrixMultiProcessing{
 		public bool HasButton => true;
-		public Bitmap DisplayImage => Resources.combineButton_Image;
+		public Bitmap2 DisplayImage => PerseusPluginUtils.GetImage("combineButton.Image.png");
 		public string Name => "Matching columns by name";
 		public bool IsActive => true;
 		public float DisplayRank => -4;
@@ -105,13 +105,13 @@ namespace PerseusPluginLib.Join{
 				if (dic1.ContainsKey(expColNames[i])){
 					int ind = dic1[expColNames[i]];
 					for (int j = 0; j < nrows1; j++){
-						ex[j, i] = mdata1.Values[j, ind];
+						ex[j, i] = mdata1.Values.Get(j, ind);
 					}
 				}
 				if (dic2.ContainsKey(expColNames[i])){
 					int ind = dic2[expColNames[i]];
 					for (int j = 0; j < nrows2; j++){
-						ex[nrows1 + j, i] = mdata2.Values[j, ind];
+						ex[nrows1 + j, i] = mdata2.Values.Get(j, ind);
 					}
 				}
 			}

@@ -1,19 +1,18 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
+using BaseLibS.Graph;
 using BaseLibS.Num;
 using BaseLibS.Param;
 using BaseLibS.Util;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
-using PerseusApi.Utils;
-using PerseusPluginLib.Properties;
+using PerseusPluginLib.Utils;
 
 namespace PerseusPluginLib.Join{
 	public class MatchingRowsByName : IMatrixMultiProcessing{
 		public bool HasButton => true;
-		public Bitmap DisplayImage => Resources.combineButton_Image;
+		public Bitmap2 DisplayImage => PerseusPluginUtils.GetImage("combineButton.Image.png");
 		public string Name => "Matching rows by name";
 		public bool IsActive => true;
 		public float DisplayRank => -5;
@@ -75,69 +74,55 @@ namespace PerseusPluginLib.Join{
 			List<string> exCol = matrixData2.ColumnNames;
 			int[] exSel = new int[0];
 			return
-				new Parameters(new Parameter[]{
-					new SingleChoiceParam("Matching column in matrix 1"){
-						Values = controlChoice1,
-						Value = index1,
-						Help = "The column in the first matrix that is used for matching rows."
-					},
-					new SingleChoiceParam("Matching column in matrix 2"){
-						Values = controlChoice2,
-						Value = index2,
-						Help = "The column in the second matrix that is used for matching rows."
-					},
-					new BoolWithSubParams("Use additional column pair"){
-						SubParamsTrue =
-							new Parameters(new Parameter[]{
-								new SingleChoiceParam("Additional column in matrix 1"){
-									Values = controlChoice1,
-									Value = index1,
-									Help = "Additional column in the first matrix that is used for matching rows."
-								},
-								new SingleChoiceParam("Additional column in matrix 2"){
-									Values = controlChoice2,
-									Value = index2,
-									Help = "Additional column in the second matrix that is used for matching rows."
-								}
-							})
-					},
-					new BoolParam("Indicator"){
-						Help =
-							"If checked, a categorical column will be added in which it is indicated by a '+' if at least one row of the second " +
-							"matrix matches."
-					},
-					new MultiChoiceParam("Main columns"){
-						Value = exSel,
-						Values = exCol,
-						Help = "Main columns of the second matrix that should be added to the first matrix."
-					},
-					new SingleChoiceParam("Combine main values"){
-						Values = new[]{"Median", "Mean", "Minimum", "Maximum", "Sum"},
-						Help =
-							"In case multiple rows of the second matrix match to a row of the first matrix, how should multiple " +
-							"values be combined?"
-					},
-					new MultiChoiceParam("Categorical columns"){
-						Values = catCol,
-						Value = catSel,
-						Help = "Categorical columns of the second matrix that should be added to the first matrix."
-					},
-					new MultiChoiceParam("Text columns"){
-						Values = textCol,
-						Value = textSel,
-						Help = "Text columns of the second matrix that should be added to the first matrix."
-					},
-					new MultiChoiceParam("Numerical columns"){
-						Values = numCol,
-						Value = numSel,
-						Help = "Numerical columns of the second matrix that should be added to the first matrix."
-					},
-					new SingleChoiceParam("Combine numerical values"){
-						Values = new[]{"Median", "Mean", "Minimum", "Maximum", "Sum", "Keep separate"},
-						Help =
-							"In case multiple rows of the second matrix match to a row of the first matrix, how should multiple " +
-							"numerical values be combined?"
-					}
+				new Parameters(new SingleChoiceParam("Matching column in matrix 1"){
+					Values = controlChoice1,
+					Value = index1,
+					Help = "The column in the first matrix that is used for matching rows."
+				}, new SingleChoiceParam("Matching column in matrix 2"){
+					Values = controlChoice2,
+					Value = index2,
+					Help = "The column in the second matrix that is used for matching rows."
+				}, new BoolWithSubParams("Use additional column pair"){
+					SubParamsTrue =
+						new Parameters(new SingleChoiceParam("Additional column in matrix 1"){
+							Values = controlChoice1,
+							Value = index1,
+							Help = "Additional column in the first matrix that is used for matching rows."
+						}, new SingleChoiceParam("Additional column in matrix 2"){
+							Values = controlChoice2,
+							Value = index2,
+							Help = "Additional column in the second matrix that is used for matching rows."
+						})
+				}, new BoolParam("Indicator"){
+					Help =
+						"If checked, a categorical column will be added in which it is indicated by a '+' if at least one row of the second " +
+						"matrix matches."
+				}, new MultiChoiceParam("Main columns"){
+					Value = exSel,
+					Values = exCol,
+					Help = "Main columns of the second matrix that should be added to the first matrix."
+				}, new SingleChoiceParam("Combine main values"){
+					Values = new[]{"Median", "Mean", "Minimum", "Maximum", "Sum"},
+					Help =
+						"In case multiple rows of the second matrix match to a row of the first matrix, how should multiple " +
+						"values be combined?"
+				}, new MultiChoiceParam("Categorical columns"){
+					Values = catCol,
+					Value = catSel,
+					Help = "Categorical columns of the second matrix that should be added to the first matrix."
+				}, new MultiChoiceParam("Text columns"){
+					Values = textCol,
+					Value = textSel,
+					Help = "Text columns of the second matrix that should be added to the first matrix."
+				}, new MultiChoiceParam("Numerical columns"){
+					Values = numCol,
+					Value = numSel,
+					Help = "Numerical columns of the second matrix that should be added to the first matrix."
+				}, new SingleChoiceParam("Combine numerical values"){
+					Values = new[]{"Median", "Mean", "Minimum", "Maximum", "Sum", "Keep separate"},
+					Help =
+						"In case multiple rows of the second matrix match to a row of the first matrix, how should multiple " +
+						"numerical values be combined?"
 				});
 		}
 
@@ -155,8 +140,9 @@ namespace PerseusPluginLib.Join{
 			return result;
 		}
 
-		private static IMatrixData GetResult(IDataWithAnnotationRows mdata1, IDataWithAnnotationRows mdata2,
-			Parameters parameters, IList<int[]> indexMap){
+		private static IMatrixData GetResult(IMatrixData mdata1, IMatrixData mdata2,
+			Parameters parameters, IList<int[]> indexMap)
+		{
 			IMatrixData result = (IMatrixData) mdata1.Clone();
 			SetAnnotationRows(result, mdata1, mdata2);
 			bool indicator = parameters.GetParam<bool>("Indicator").Value;
@@ -188,15 +174,19 @@ namespace PerseusPluginLib.Join{
 						List<double> qual = new List<double>();
 						List<bool> imp = new List<bool>();
 						foreach (int ind in inds){
-							double v = mdata2.Values[ind, exColInds[i]];
+							double v = mdata2.Values.Get(ind, exColInds[i]);
 							if (!double.IsNaN(v) && !double.IsInfinity(v)){
 								values.Add(v);
-								double qx = mdata2.Quality[ind, exColInds[i]];
-								if (!double.IsNaN(qx) && !double.IsInfinity(qx)){
-									qual.Add(qx);
+								if (mdata2.Quality.IsInitialized()){
+									double qx = mdata2.Quality.Get(ind, exColInds[i]);
+									if (!double.IsNaN(qx) && !double.IsInfinity(qx)){
+										qual.Add(qx);
+									}
 								}
-								bool isi = mdata2.IsImputed[ind, exColInds[i]];
-								imp.Add(isi);
+								if (mdata2.IsImputed != null){
+									bool isi = mdata2.IsImputed[ind, exColInds[i]];
+									imp.Add(isi);
+								}
 							}
 						}
 						newExColumns[j, i] = values.Count == 0 ? float.NaN : (float) avExpression(values.ToArray());
@@ -520,8 +510,8 @@ namespace PerseusPluginLib.Join{
 			bool[,] newImp = new bool[data.RowCount, data.ColumnCount + vals.GetLength(1)];
 			for (int i = 0; i < data.RowCount; i++){
 				for (int j = 0; j < data.ColumnCount; j++){
-					newVals[i, j] = data.Values[i, j];
-					newQual[i, j] = data.Quality[i, j];
+					newVals[i, j] = data.Values.Get(i, j);
+					newQual[i, j] = data.Quality.Get(i, j);
 					newImp[i, j] = data.IsImputed[i, j];
 				}
 				for (int j = 0; j < vals.GetLength(1); j++){
@@ -541,7 +531,7 @@ namespace PerseusPluginLib.Join{
 			HashSet<string> taken = new HashSet<string>(mainColumnNames);
 			for (int i = 0; i < newExColNames.Count; i++){
 				if (taken.Contains(newExColNames[i])){
-					string n1 = PerseusUtils.GetNextAvailableName(newExColNames[i], taken);
+					string n1 = StringUtils.GetNextAvailableName(newExColNames[i], taken);
 					newExColNames[i] = n1;
 					taken.Add(n1);
 				} else{

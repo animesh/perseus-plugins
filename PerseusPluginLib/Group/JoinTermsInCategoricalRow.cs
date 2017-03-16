@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
+using BaseLibS.Graph;
 using BaseLibS.Param;
 using PerseusApi.Document;
 using PerseusApi.Generic;
@@ -9,7 +9,7 @@ using PerseusApi.Matrix;
 namespace PerseusPluginLib.Group{
 	public class JoinTermsInCategoricalRow : IMatrixProcessing{
 		public bool HasButton => false;
-		public Bitmap DisplayImage => null;
+		public Bitmap2 DisplayImage => null;
 		public string Description => "The selected terms in the categorical row will be joined to one term.";
 		public string HelpOutput => "The filtered matrix.";
 		public string[] HelpSupplTables => new string[0];
@@ -42,16 +42,13 @@ namespace PerseusPluginLib.Group{
 					});
 			}
 			return
-				new Parameters(new Parameter[]{
-					new SingleChoiceWithSubParams("Row"){
-						Values = mdata.CategoryRowNames,
-						SubParams = subParams,
-						Help = "The categorical row that the filtering should be based on.",
-						ParamNameWidth = 50,
-						TotalWidth = 731
-					},
-					new StringParam("New term")
-				});
+				new Parameters(new SingleChoiceWithSubParams("Row"){
+					Values = mdata.CategoryRowNames,
+					SubParams = subParams,
+					Help = "The categorical row that the filtering should be based on.",
+					ParamNameWidth = 50,
+					TotalWidth = 731
+				}, new StringParam("New term"));
 		}
 
 		public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables,

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
+using BaseLibS.Graph;
 using BaseLibS.Num;
 using BaseLibS.Param;
 using PerseusApi.Document;
@@ -10,7 +10,7 @@ using PerseusApi.Matrix;
 namespace PerseusPluginLib.Load{
 	public class CreateRandomMatrix : IMatrixUpload{
 		public bool HasButton => true;
-		public Bitmap DisplayImage => BaseLib.Properties.Resources.dice;
+		public Bitmap2 DisplayImage => Bitmap2.GetImage("dice.png");
 		public string Name => "Create random matrix";
 		public bool IsActive => true;
 		public float DisplayRank => 6;
@@ -35,8 +35,9 @@ namespace PerseusPluginLib.Load{
 			int ncols = param.GetParam<int>("Number of columns").Value;
 			int missingPerc = param.GetParam<int>("Percentage of missing values").Value;
 			int ngroups = param.GetParam<int>("Number of groups").Value;
+			ParameterWithSubParams<bool> setSeed = param.GetParamWithSubParams<bool>("Set seed");
+			Random2 randy = setSeed.Value ? new Random2(setSeed.GetSubParameters().GetParam<int>("Seed").Value) : new Random2();
 			ngroups = Math.Min(ngroups, ncols);
-			Random2 randy = new Random2();
 			float[,] m = new float[nrows, ncols];
 			ParameterWithSubParams<int> x = param.GetParamWithSubParams<int>("Mode");
 			Parameters subParams = x.GetSubParameters();
@@ -120,7 +121,7 @@ namespace PerseusPluginLib.Load{
 			mdata.AddStringColumn("Name", "Name", names);
 			string[][] grouping = new string[ncols][];
 			for (int i = 0; i < ncols; i++){
-				int ig = (i*ngroups)/ncols + 1;
+				int ig = i*ngroups/ncols + 1;
 				grouping[i] = new[]{"Group" + ig};
 			}
 			mdata.AddCategoryRow("Grouping", "Grouping", grouping);
@@ -129,19 +130,19 @@ namespace PerseusPluginLib.Load{
 		public Parameters GetParameters(ref string errorString){
 			Parameters oneNormalSubParams = new Parameters();
 			Parameters twoNormalSubParams = new Parameters(new Parameter[]{new DoubleParam("Distance", 2)});
-			Parameters manyNormalSubParams =
-				new Parameters(new Parameter[]{new IntParam("How many", 3), new DoubleParam("Box size", 2)});
-			return
-				new Parameters(new Parameter[]{
-					new IntParam("Number of rows", 100), new IntParam("Number of columns", 15),
-					new IntParam("Percentage of missing values", 0),
-					new SingleChoiceWithSubParams("Mode"){
-						Values = new[]{"One normal distribution", "Two normal distributions", "Many normal distributions"},
-						SubParams = new[]{oneNormalSubParams, twoNormalSubParams, manyNormalSubParams},
-						ParamNameWidth = 120,
-						TotalWidth = 800
-					},
-					new IntParam("Number of groups", 3)
+			Parameters manyNormalSubParams = new Parameters(new IntParam("How many", 3), new DoubleParam("Box size", 2));
+			return new Parameters(new IntParam("Number of rows", 100), new IntParam("Number of columns", 15),
+				new IntParam("Percentage of missing values", 0),
+				new SingleChoiceWithSubParams("Mode"){
+					Values = new[]{"One normal distribution", "Two normal distributions", "Many normal distributions"},
+					SubParams = new[]{oneNormalSubParams, twoNormalSubParams, manyNormalSubParams},
+					ParamNameWidth = 120,
+					TotalWidth = 800
+				}, new IntParam("Number of groups", 3),
+				new BoolWithSubParams("Set seed"){
+					Default = false,
+					Help = "For a fixed seed the generated 'random' matrix will always be identical",
+					SubParamsTrue = new Parameters(new Parameter[]{new IntParam("Seed", 0)})
 				});
 		}
 	}

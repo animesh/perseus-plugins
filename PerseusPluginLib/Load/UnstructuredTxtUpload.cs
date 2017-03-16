@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
+using BaseLibS.Graph;
 using BaseLibS.Param;
 using BaseLibS.Parse;
 using BaseLibS.Util;
@@ -8,12 +8,12 @@ using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
 using PerseusApi.Utils;
-using PerseusPluginLib.Properties;
+using PerseusPluginLib.Utils;
 
 namespace PerseusPluginLib.Load{
 	public class UnstructuredTxtUpload : IMatrixUpload{
 		public bool HasButton => true;
-		public Bitmap DisplayImage => Resources.raw;
+		public Bitmap2 DisplayImage => PerseusPluginUtils.GetImage("raw.png");
 		public string Name => "Raw upload";
 		public bool IsActive => true;
 		public float DisplayRank => 10;
@@ -29,15 +29,12 @@ namespace PerseusPluginLib.Load{
 
 		public Parameters GetParameters(ref string errString){
 			return
-				new Parameters(new Parameter[]{
-					new FileParam("File"){
-						Filter =
-							"Text (Tab delimited) (*.txt)|*.txt;*txt.gz|CSV (Comma delimited) (*.csv)|*.csv;*.csv.gz|All files (*.*)|*.*",
-						Help = "Please specify here the name of the file to be uploaded including its full path."
-					},
-					new BoolWithSubParams("Split into columns", false){
-						SubParamsTrue = new Parameters(new SingleChoiceParam("Separator"){Values = new[]{"Tab", "Comma"}})
-					}
+				new Parameters(new FileParam("File"){
+					Filter =
+						"Text (Tab delimited) (*.txt)|*.txt;*txt.gz|CSV (Comma delimited) (*.csv)|*.csv;*.csv.gz|All files (*.*)|*.*",
+					Help = "Please specify here the name of the file to be uploaded including its full path."
+				}, new BoolWithSubParams("Split into columns", false){
+					SubParamsTrue = new Parameters(new SingleChoiceParam("Separator"){Values = new[]{"Tab", "Comma"}})
 				});
 		}
 

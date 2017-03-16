@@ -1,8 +1,8 @@
-﻿using System.Drawing;
+﻿using BaseLibS.Graph;
 using BaseLibS.Param;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
-using PerseusPluginLib.Properties;
+using PerseusPluginLib.Utils;
 
 namespace PerseusPluginLib.Manual{
 	public class SelectRowsManually : IMatrixAnalysis{
@@ -12,7 +12,7 @@ namespace PerseusPluginLib.Manual{
 			;
 
 		public bool HasButton => true;
-		public Bitmap DisplayImage => Resources.hand;
+		public Bitmap2 DisplayImage => PerseusPluginUtils.GetImage("hand.png");
 		public string Heading => null;
 		public string Name => "Select rows manually";
 		public bool IsActive => true;

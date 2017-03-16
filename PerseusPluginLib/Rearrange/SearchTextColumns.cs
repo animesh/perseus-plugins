@@ -1,4 +1,4 @@
-using System.Drawing;
+using BaseLibS.Graph;
 using BaseLibS.Param;
 using PerseusApi.Document;
 using PerseusApi.Generic;
@@ -7,7 +7,7 @@ using PerseusApi.Matrix;
 namespace PerseusPluginLib.Rearrange{
 	public class SearchTextColumns : IMatrixProcessing{
 		public bool HasButton => false;
-		public Bitmap DisplayImage => null;
+		public Bitmap2 DisplayImage => null;
 		public string Description => "A new categorical column is generated representing search results in a text column.";
 		public string HelpOutput => "";
 		public string[] HelpSupplTables => new string[0];

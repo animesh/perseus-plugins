@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
+using BaseLibS.Graph;
 using BaseLibS.Num;
 using BaseLibS.Param;
 using BaseLibS.Util;
@@ -12,7 +12,7 @@ using PerseusApi.Matrix;
 namespace PerseusPluginLib.Norm{
 	public class Subtract : IMatrixProcessing{
 		public bool HasButton => false;
-		public Bitmap DisplayImage => null;
+		public Bitmap2 DisplayImage => null;
 		public string Description => "The specified quantity calculated on each row/column is subtracted from each value.";
 		public string HelpOutput => "Normalized expression matrix.";
 		public string[] HelpSupplTables => new string[0];
@@ -23,7 +23,7 @@ namespace PerseusPluginLib.Norm{
 		public float DisplayRank => -6;
 		public string[] HelpDocuments => new string[0];
 		public int NumDocuments => 0;
-		public string Url => "https://github.com/animesh/perseus-plugins/tree/master/PluginANN";
+		public string Url => "http://coxdocs.org/doku.php?id=perseus:user:activities:MatrixProcessing:Normalization:Subtract";
 
 		public int GetMaxThreads(Parameters parameters) {
 			return int.MaxValue;
@@ -65,12 +65,12 @@ namespace PerseusPluginLib.Norm{
 			for (int i = 0; i < data.RowCount; i++){
 				double[] vals = new double[inds.Count];
 				for (int j = 0; j < inds.Count; j++){
-					double q = data.Values[i, inds[j]];
+					double q = data.Values.Get(i, inds[j]);
 					vals[j] = q;
 				}
 				double mean = func(vals);
 				foreach (int t in inds){
-					data.Values[i, t] = (float)((data.Values[i, t] - mean));
+					data.Values.Set(i, t, (float)((data.Values.Get(i, t) - mean)));
 				}
 			}
 		}
@@ -123,28 +123,28 @@ namespace PerseusPluginLib.Norm{
 		private static void Calc1(int i, Func<double[], double> summarize, IMatrixData data){
 			List<double> vals = new List<double>();
 			for (int j = 0; j < data.ColumnCount; j++){
-				double q = data.Values[i, j];
+				double q = data.Values.Get(i, j);
 				if (!double.IsNaN(q) && !double.IsInfinity(q)){
 					vals.Add(q);
 				}
 			}
 			double med = summarize(vals.ToArray());
 			for (int j = 0; j < data.ColumnCount; j++){
-				data.Values[i, j] -= (float)med;
+				data.Values.Set(i, j, data.Values.Get(i, j)-(float)med);
 			}
 		}
 
 		private static void Calc2(int j, Func<double[], double> summarize, IMatrixData data){
 			List<double> vals = new List<double>();
 			for (int i = 0; i < data.RowCount; i++){
-				double q = data.Values[i, j];
+				double q = data.Values.Get(i, j);
 				if (!double.IsNaN(q) && !double.IsInfinity(q)){
 					vals.Add(q);
 				}
 			}
 			double med = summarize(vals.ToArray());
 			for (int i = 0; i < data.RowCount; i++){
-				data.Values[i, j] -= (float)med;
+				data.Values.Set(i, j, data.Values.Get(i, j)-(float)med);
 			}
 		}
 	}

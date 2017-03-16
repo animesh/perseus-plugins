@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+﻿using BaseLibS.Graph;
 using BaseLibS.Param;
 using PerseusApi.Document;
 using PerseusApi.Generic;
@@ -7,7 +7,7 @@ using PerseusApi.Matrix;
 namespace PerseusPluginLib.Impute{
 	public class ReplaceImputedByNan : IMatrixProcessing{
 		public bool HasButton => false;
-		public Bitmap DisplayImage => null;
+		public Bitmap2 DisplayImage => null;
 		public string Description => "Replaces all values that have been imputed with NaN.";
 		public string HelpOutput => "Same matrix but with imputed values deleted.";
 		public string[] HelpSupplTables => new string[0];
@@ -39,7 +39,7 @@ namespace PerseusPluginLib.Impute{
 			for (int i = 0; i < data.RowCount; i++){
 				for (int j = 0; j < data.ColumnCount; j++){
 					if (data.IsImputed[i, j]){
-						data.Values[i, j] = float.NaN;
+						data.Values.Set(i, j, float.NaN);
 					}
 				}
 			}

@@ -244,7 +244,7 @@ namespace PerseusApi.Utils{
 			status("");
 		}
 
-		public static void ParseExp(string s, out float expressionValue, out bool isImputedValue, out float qualityValue){
+		private static void ParseExp(string s, out float expressionValue, out bool isImputedValue, out float qualityValue){
 			string[] w = s.Split(';');
 			expressionValue = float.NaN;
 			isImputedValue = false;
@@ -269,7 +269,7 @@ namespace PerseusApi.Utils{
 			}
 		}
 
-		public static bool GetHasAddtlMatrices(StreamReader reader, IList<int> expressionColIndices, char separator){
+		private static bool GetHasAddtlMatrices(TextReader reader, IList<int> expressionColIndices, char separator){
 			if (expressionColIndices.Count == 0){
 				return false;
 			}
@@ -292,7 +292,7 @@ namespace PerseusApi.Utils{
 			return hasAddtl;
 		}
 
-		public static string RemoveSplitWhitespace(string s){
+		private static string RemoveSplitWhitespace(string s){
 			if (!s.Contains(";")){
 				return s.Trim();
 			}
@@ -303,7 +303,7 @@ namespace PerseusApi.Utils{
 			return StringUtils.Concat(";", q);
 		}
 
-		public static void SplitAnnotRows(IDictionary<string, string[]> annotRows,
+		private static void SplitAnnotRows(IDictionary<string, string[]> annotRows,
 			out Dictionary<string, string[]> catAnnotRows, out Dictionary<string, string[]> numAnnotRows){
 			catAnnotRows = new Dictionary<string, string[]>();
 			numAnnotRows = new Dictionary<string, string[]>();
@@ -316,14 +316,14 @@ namespace PerseusApi.Utils{
 			}
 		}
 
-		public static string RemoveQuotes(string name){
+		private static string RemoveQuotes(string name){
 			if (name.Length > 2 && name.StartsWith("\"") && name.EndsWith("\"")){
 				return name.Substring(1, name.Length - 2);
 			}
 			return name;
 		}
 
-		public static List<string> RemoveQuotes(IEnumerable<string> names){
+		private static List<string> RemoveQuotes(IEnumerable<string> names){
 			List<string> result = new List<string>();
 			foreach (string name in names){
 				if (name.Length > 2 && name.StartsWith("\"") && name.EndsWith("\"")){
@@ -335,7 +335,7 @@ namespace PerseusApi.Utils{
 			return result;
 		}
 
-		public static string[] SplitLine(string line, char separator){
+		private static string[] SplitLine(string line, char separator){
 			line = line.Trim(' ');
 			bool inQuote = false;
 			List<int> sepInds = new List<int>();
@@ -368,53 +368,79 @@ namespace PerseusApi.Utils{
 			return w;
 		}
 
-		public static string GetNextAvailableName(string s, ICollection<string> taken){
-			if (!taken.Contains(s)){
-				return s;
-			}
-			while (true){
-				s = GetNext(s);
-				if (!taken.Contains(s)){
-					return s;
-				}
-			}
-		}
-
-		private static string GetNext(string s){
-			if (!HasNumberExtension(s)){
-				return s + "_1";
-			}
-			int x = s.LastIndexOf('_');
-			string s1 = s.Substring(x + 1);
-			int num = int.Parse(s1);
-			return s.Substring(0, x + 1) + (num + 1);
-		}
-
-		private static bool HasNumberExtension(string s){
-			int x = s.LastIndexOf('_');
-			if (x < 0){
-				return false;
-			}
-			string s1 = s.Substring(x + 1);
-			int num;
-			bool succ = int.TryParse(s1, out num);
-			return succ;
-		}
-
+        /// <summary>
+        /// Search the annotation folder for annotations.
+        /// </summary>
+        /// <param name="baseNames">The name of the base identifier from which the mapping will be performed. For example Uniprot, ENSG</param>
+        /// <param name="files"></param>
+        /// <returns>A list of annotations for each file. For example <code>{{"Chromosome", "Orientation"},{"KEGG name", "Pfam"}}</code></returns>
 		public static string[][] GetAvailableAnnots(out string[] baseNames, out string[] files){
 			AnnotType[][] types;
-			return GetAvailableAnnots(out baseNames, out types, out files);
+		    List<string> badFiles;
+			return GetAvailableAnnots(out baseNames, out types, out files, out badFiles);
 		}
 
-		public static string[][] GetAvailableAnnots(out string[] baseNames, out AnnotType[][] types, out string[] files){
-			files = GetAnnotFiles();
-			baseNames = new string[files.Length];
-			types = new AnnotType[files.Length][];
-			string[][] names = new string[files.Length][];
-			for (int i = 0; i < names.Length; i++){
-				names[i] = GetAvailableAnnots(files[i], out baseNames[i], out types[i]);
-			}
-			return names;
+	    /// <summary>
+	    /// Search the annotation folder for annotations.
+	    /// </summary>
+	    /// <param name="baseNames">The name of the base identifier from which the mapping will be performed. For example Uniprot, ENSG</param>
+	    /// <param name="files"></param>
+	    /// <param name="badFiles">List of files which could not be processed</param>
+	    /// <returns>A list of annotations for each file. For example <code>{{"Chromosome", "Orientation"},{"KEGG name", "Pfam"}}</code></returns>
+	    public static string[][] GetAvailableAnnots(out string[] baseNames, out string[] files, out List<string> badFiles ){
+			AnnotType[][] types;
+			return GetAvailableAnnots(out baseNames, out types, out files, out badFiles);
+		}
+
+	    /// <summary>
+	    /// Search the annotation folder for annotations.
+	    /// </summary>
+	    /// <param name="baseNames">The name of the base identifier from which the mapping will be performed. For example Uniprot, ENSG</param>
+	    /// <param name="types"><see cref="AnnotType"/></param>
+	    /// <param name="files"></param>
+	    /// <returns>A list of annotations for each file. For example <code>{{"Chromosome", "Orientation"},{"KEGG name", "Pfam"}}</code></returns>
+	    public static string[][] GetAvailableAnnots(out string[] baseNames, out AnnotType[][] types, out string[] files) {
+		    List<string> badFiles;
+			return GetAvailableAnnots(out baseNames, out types, out files, out badFiles);
+		}
+        /// <summary>
+        /// Search the annotation folder for annotations.
+        /// </summary>
+        /// <param name="baseNames">The name of the base identifier from which the mapping will be performed. For example Uniprot, ENSG</param>
+	    /// <param name="types"><see cref="AnnotType"/></param>
+        /// <param name="files"></param>
+	    /// <param name="badFiles">List of files which could not be processed</param>
+        /// <returns>A list of annotations for each file. For example <code>{{"Chromosome", "Orientation"},{"KEGG name", "Pfam"}}</code></returns>
+	    public static string[][] GetAvailableAnnots(out string[] baseNames, out AnnotType[][] types, out string[] files, out List<string> badFiles ){
+			var filesList = GetAnnotFiles().ToList();
+            badFiles = new List<string>();
+		    var baseNamesList = new List<string>();
+		    var typesList = new List<AnnotType[]>();
+		    var annotationNames = new List<string[]>();
+		    foreach (var file in filesList)
+		    {
+		        try
+		        {
+		            string baseName;
+		            AnnotType[] type;
+		            var name = GetAvailableAnnots(file, out baseName, out type);
+                    annotationNames.Add(name);
+                    baseNamesList.Add(baseName);
+                    typesList.Add(type);
+                }
+                catch (Exception)
+                {
+                    badFiles.Add(file);
+		        }
+	        }
+		    foreach (var badFile in badFiles)
+		    {
+		        filesList.Remove(badFile);
+		    }
+		    files = filesList.ToArray();
+		    baseNames = baseNamesList.ToArray();
+		    types = typesList.ToArray();
+			return annotationNames.ToArray();
 		}
 
 		private static string[] GetAvailableAnnots(string file, out string baseName, out AnnotType[] types){
@@ -459,232 +485,6 @@ namespace PerseusApi.Utils{
 			return result.ToArray();
 		}
 
-		public static bool ProcessDataAddAnnotation(int nrows, Parameters para, string[] baseIds, ProcessInfo processInfo,
-			out string[] name, out int[] catColInds, out int[] textColInds, out int[] numColInds, out string[][][] catCols,
-			out string[][] textCols, out double[][] numCols){
-			string[] baseNames;
-			AnnotType[][] types;
-			string[] files;
-			string[][] names = GetAvailableAnnots(out baseNames, out types, out files);
-			const bool deHyphenate = true;
-			ParameterWithSubParams<int> spd = para.GetParamWithSubParams<int>("Source");
-			int ind = spd.Value;
-			Parameters param = spd.GetSubParameters();
-			AnnotType[] type = types[ind];
-			name = names[ind];
-			int[] addtlSources = para.GetParam<int[]>("Additional sources").Value;
-			addtlSources = ArrayUtils.Remove(addtlSources, ind);
-			foreach (int addtlSource in addtlSources){
-				AnnotType[] type1 = types[addtlSource];
-				string[] name1 = names[addtlSource];
-				if (!ArrayUtils.EqualArrays(type, type1)){
-					processInfo.ErrString = "Additional annotation file does not have the same column structure.";
-					catColInds = new int[]{};
-					textColInds = new int[]{};
-					numColInds = new int[]{};
-					catCols = new string[][][]{};
-					textCols = new string[][]{};
-					numCols = new double[][]{};
-					return false;
-				}
-				if (!ArrayUtils.EqualArrays(name, name1)){
-					processInfo.ErrString = "Additional annotation file does not have the same column structure.";
-					catColInds = new int[]{};
-					textColInds = new int[]{};
-					numColInds = new int[]{};
-					catCols = new string[][][]{};
-					textCols = new string[][]{};
-					numCols = new double[][]{};
-					return false;
-				}
-			}
-			int[] selection = param.GetParam<int[]>("Annotations to be added").Value;
-			type = ArrayUtils.SubArray(type, selection);
-			name = ArrayUtils.SubArray(name, selection);
-			HashSet<string> allIds = GetAllIds(baseIds, deHyphenate);
-			Dictionary<string, string[]> mapping = ReadMapping(allIds, files[ind], selection);
-			foreach (int addtlSource in addtlSources){
-				Dictionary<string, string[]> mapping1 = ReadMapping(allIds, files[addtlSource], selection);
-				foreach (string key in mapping1.Keys.Where(key => !mapping.ContainsKey(key))){
-					mapping.Add(key, mapping1[key]);
-				}
-			}
-			SplitIds(type, out textColInds, out catColInds, out numColInds);
-			catCols = new string[catColInds.Length][][];
-			for (int i = 0; i < catCols.Length; i++){
-				catCols[i] = new string[nrows][];
-			}
-			textCols = new string[textColInds.Length][];
-			for (int i = 0; i < textCols.Length; i++){
-				textCols[i] = new string[nrows];
-			}
-			numCols = new double[numColInds.Length][];
-			for (int i = 0; i < numCols.Length; i++){
-				numCols[i] = new double[nrows];
-			}
-			for (int i = 0; i < nrows; i++){
-				string[] ids = baseIds[i].Length > 0 ? baseIds[i].Split(';') : new string[0];
-				HashSet<string>[] catVals = new HashSet<string>[catCols.Length];
-				for (int j = 0; j < catVals.Length; j++){
-					catVals[j] = new HashSet<string>();
-				}
-				HashSet<string>[] textVals = new HashSet<string>[textCols.Length];
-				for (int j = 0; j < textVals.Length; j++){
-					textVals[j] = new HashSet<string>();
-				}
-				List<double>[] numVals = new List<double>[numCols.Length];
-				for (int j = 0; j < numVals.Length; j++){
-					numVals[j] = new List<double>();
-				}
-				foreach (string id in ids){
-					if (mapping.ContainsKey(id)){
-						string[] values = mapping[id];
-						AddCatVals(ArrayUtils.SubArray(values, catColInds), catVals);
-						AddTextVals(ArrayUtils.SubArray(values, textColInds), textVals);
-						AddNumVals(ArrayUtils.SubArray(values, numColInds), numVals);
-					} else if (id.Contains("-")){
-						string q = id.Substring(0, id.IndexOf('-'));
-						if (mapping.ContainsKey(q)){
-							string[] values = mapping[q];
-							AddCatVals(ArrayUtils.SubArray(values, catColInds), catVals);
-							AddTextVals(ArrayUtils.SubArray(values, textColInds), textVals);
-							AddNumVals(ArrayUtils.SubArray(values, numColInds), numVals);
-						}
-					}
-				}
-				for (int j = 0; j < catVals.Length; j++){
-					string[] q = ArrayUtils.ToArray(catVals[j]);
-					Array.Sort(q);
-					catCols[j][i] = q;
-				}
-				for (int j = 0; j < textVals.Length; j++){
-					string[] q = ArrayUtils.ToArray(textVals[j]);
-					Array.Sort(q);
-					textCols[j][i] = StringUtils.Concat(";", q);
-				}
-				for (int j = 0; j < numVals.Length; j++){
-					numCols[j][i] = ArrayUtils.Median(numVals[j]);
-				}
-			}
-			return true;
-		}
-
-		private static void AddCatVals(IList<string> values, IList<HashSet<string>> catVals){
-			for (int i = 0; i < values.Count; i++){
-				AddCatVals(values[i], catVals[i]);
-			}
-		}
-
-		private static void AddTextVals(IList<string> values, IList<HashSet<string>> textVals){
-			for (int i = 0; i < values.Count; i++){
-				AddTextVals(values[i], textVals[i]);
-			}
-		}
-
-		private static void AddNumVals(IList<string> values, IList<List<double>> numVals){
-			for (int i = 0; i < values.Count; i++){
-				AddNumVals(values[i], numVals[i]);
-			}
-		}
-
-		private static void AddCatVals(string value, ISet<string> catVals){
-			string[] q = value.Length > 0 ? value.Split(';') : new string[0];
-			foreach (string s in q){
-				catVals.Add(s);
-			}
-		}
-
-		private static void AddTextVals(string value, ISet<string> textVals){
-			string[] q = value.Length > 0 ? value.Split(';') : new string[0];
-			foreach (string s in q){
-				textVals.Add(s);
-			}
-		}
-
-		private static void AddNumVals(string value, ICollection<double> numVals){
-			string[] q = value.Length > 0 ? value.Split(';') : new string[0];
-			foreach (string s in q){
-				numVals.Add(double.Parse(s));
-			}
-		}
-
-		private static void SplitIds(IList<AnnotType> types, out int[] textCols, out int[] catCols, out int[] numCols){
-			List<int> tc = new List<int>();
-			List<int> cc = new List<int>();
-			List<int> nc = new List<int>();
-			for (int i = 0; i < types.Count; i++){
-				switch (types[i]){
-					case AnnotType.Categorical:
-						cc.Add(i);
-						break;
-					case AnnotType.Text:
-						tc.Add(i);
-						break;
-					case AnnotType.Numerical:
-						nc.Add(i);
-						break;
-					default:
-						throw new Exception("Never get here.");
-				}
-			}
-			textCols = tc.ToArray();
-			catCols = cc.ToArray();
-			numCols = nc.ToArray();
-		}
-
-		private static Dictionary<string, string[]> ReadMapping(ICollection<string> allIds, string file, IList<int> selection){
-			for (int i = 0; i < selection.Count; i++){
-				selection[i]++;
-			}
-			StreamReader reader = FileUtils.GetReader(file);
-			reader.ReadLine();
-			reader.ReadLine();
-			string line;
-			Dictionary<string, string[]> result = new Dictionary<string, string[]>();
-			while ((line = reader.ReadLine()) != null){
-				string[] q = line.Split('\t');
-				string w = q[0];
-				string[] ids = w.Length > 0 ? w.Split(';') : new string[0];
-				string[] value = ArrayUtils.SubArray(q, selection);
-				foreach (string id in ids){
-					if (!allIds.Contains(id)){
-						continue;
-					}
-					if (!result.ContainsKey(id)){
-						result.Add(id, value);
-					}
-				}
-			}
-			return result;
-		}
-
-		private static HashSet<string> GetAllIds(IEnumerable<string> x, bool deHyphenate){
-			HashSet<string> result = new HashSet<string>();
-			foreach (string y in x){
-				string[] z = y.Length > 0 ? y.Split(';') : new string[0];
-				foreach (string q in z){
-					result.Add(q);
-					if (deHyphenate && q.Contains("-")){
-						string r = q.Substring(0, q.IndexOf("-", StringComparison.InvariantCulture));
-						result.Add(r);
-					}
-				}
-			}
-			return result;
-		}
-
-		public static Parameter[] GetMultiNumFilterParams(string[] selection){
-			return new Parameter[]{};
-		}
-
-		public static Parameter[] GetTextFilterParams(string[] selection){
-			return new Parameter[]{};
-		}
-
-		public static Parameter[] GetCatFilterParams(string[] selection){
-			return new Parameter[]{};
-		}
-
 		public static Parameter[] GetNumFilterParams(string[] selection){
 			return new[]{
 				GetColumnSelectionParameter(selection), GetRelationsParameter(),
@@ -713,7 +513,7 @@ namespace PerseusApi.Utils{
 			};
 		}
 
-		public static string GetVariableName(int i){
+		private static string GetVariableName(int i){
 			const string x = "xyzabc";
 			return "" + x[i];
 		}
@@ -805,24 +605,6 @@ namespace PerseusApi.Utils{
 			return result;
 		}
 
-		public static int GetRowCount(StreamReader reader, StreamReader auxReader, int[] mainColIndices,
-			List<Tuple<Relation[], int[], bool>> filters, char separator){
-			reader.BaseStream.Seek(0, SeekOrigin.Begin);
-			reader.ReadLine();
-			int count = 0;
-			bool hasAddtlMatrices = auxReader != null && GetHasAddtlMatrices(auxReader, mainColIndices, separator);
-			string line;
-			while ((line = reader.ReadLine()) != null){
-				while (TabSep.IsCommentLine(line, commentPrefix, commentPrefixExceptions)){
-					line = reader.ReadLine();
-				}
-				if (IsValidLine(line, separator, filters, hasAddtlMatrices)){
-					count++;
-				}
-			}
-			return count;
-		}
-
 		private static bool IsValidLine(string line, char separator, List<Tuple<Relation[], int[], bool>> filters,
 			out string[] split, bool hasAddtlMatrices){
 			if (filters == null || filters.Count == 0){
@@ -875,6 +657,24 @@ namespace PerseusApi.Utils{
 			return result;
 		}
 
+		public static int GetRowCount(StreamReader reader, StreamReader auxReader, int[] mainColIndices,
+			List<Tuple<Relation[], int[], bool>> filters, char separator){
+			reader.BaseStream.Seek(0, SeekOrigin.Begin);
+			reader.ReadLine();
+			int count = 0;
+			bool hasAddtlMatrices = auxReader != null && GetHasAddtlMatrices(auxReader, mainColIndices, separator);
+			string line;
+			while ((line = reader.ReadLine()) != null){
+				while (TabSep.IsCommentLine(line, commentPrefix, commentPrefixExceptions)){
+					line = reader.ReadLine();
+				}
+				if (IsValidLine(line, separator, filters, hasAddtlMatrices)){
+					count++;
+				}
+			}
+			return count;
+		}
+
 		public static void AddFilter(List<Tuple<Relation[], int[], bool>> filters, Parameters p, int[] inds,
 			out string errString){
 			int[] colInds;
@@ -888,5 +688,468 @@ namespace PerseusApi.Utils{
 				filters.Add(new Tuple<Relation[], int[], bool>(relations, colInds, and));
 			}
 		}
+
+	    /// <summary>
+	    /// Write data table to file with tab separation.
+	    /// </summary>
+	    /// <param name="data"></param>
+	    /// <param name="filename"></param>
+	    public static void WriteDataWithAnnotationColumns(IDataWithAnnotationColumns data, string filename)
+	    {
+	        using (var writer = new StreamWriter(filename))
+	        {
+	            WriteDataWithAnnotationColumns(data, writer);
+	        }
+	    }
+
+        /// <summary>
+        /// Write data table to stream with tab separation.
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="writer"></param>
+	    public static void WriteDataWithAnnotationColumns(IDataWithAnnotationColumns data, StreamWriter writer)
+	    {
+            var columnNames = ColumnNames(data);
+            writer.WriteLine(StringUtils.Concat("\t", columnNames));
+            if (HasAnyDescription(data))
+            {
+                var columnDescriptions = ColumnDescriptions(data);
+                writer.WriteLine("#!{Description}" + StringUtils.Concat("\t", columnDescriptions));
+            }
+            var columnTypes = ColumnTypes(data);
+            writer.WriteLine("#!{Type}" + StringUtils.Concat("\t", columnTypes));
+            var dataRows = DataAnnotationRows(data);
+            foreach (var row in dataRows)
+            {
+                writer.WriteLine(row);
+            }
+	    }
+
+	    /// <summary>
+	    /// Write matrix to stream with tab separation.
+	    /// </summary>
+	    /// <param name="data"></param>
+	    /// <param name="writer"></param>
+	    /// <param name="addtlMatrices"></param>
+	    public static void WriteMatrix(IMatrixData data, StreamWriter writer, bool addtlMatrices = false)
+	    {
+            var columnNames = ColumnNames(data);
+            writer.WriteLine(StringUtils.Concat("\t", columnNames));
+            if (HasAnyDescription(data))
+            {
+                var columnDescriptions = ColumnDescriptions(data);
+                writer.WriteLine("#!{Description}" + StringUtils.Concat("\t", columnDescriptions));
+            }
+            var columnTypes = ColumnTypes(data);
+            writer.WriteLine("#!{Type}" + StringUtils.Concat("\t", columnTypes));
+            var numAnnotRows = NumericalAnnotationRows(data);
+            foreach (var row in numAnnotRows)
+            {
+                writer.WriteLine(row);
+            }
+            var catAnnotRows = CategoricalAnnotationRows(data);
+            foreach (var row in catAnnotRows)
+            {
+                writer.WriteLine(row);
+            }
+            var dataRows = DataRows(data, addtlMatrices);
+            foreach (var row in dataRows)
+            {
+                writer.WriteLine(row);
+            }
+        }
+
+        /// <summary>
+        /// Write matrix to file with tab separation
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="filename"></param>
+        /// <param name="addtlMatrices">if true numbers are converted to triples <code>value;imputed;quality</code></param>
+        public static void WriteMatrixToFile(IMatrixData data, string filename, bool addtlMatrices=false)
+	    {
+	        using (var writer = new StreamWriter(filename))
+	        {
+                WriteMatrix(data, writer, addtlMatrices);
+	        }
+	    }
+
+	    private static IEnumerable<string> DataRows(IMatrixData data, bool addtlMatrices)
+	    {
+	        var rows = new List<string>();
+	        for (int j = 0; j < data.RowCount; j++)
+	        {
+	            var words = new List<string>();
+	            for (int i = 0; i < data.ColumnCount; i++)
+	            {
+	                string s1 = "" + data.Values.Get(j, i);
+	                if (addtlMatrices)
+	                {
+	                    s1 += ";" + data.IsImputed[j, i] + ";" + data.Quality.Get(j, i);
+	                }
+	                words.Add(s1);
+	            }
+	            var row = words.Concat(DataAnnotationRow(data, j));
+	            rows.Add(StringUtils.Concat("\t", row));
+	        }
+	        return rows;
+	    }
+
+	    private static IEnumerable<string> DataAnnotationRows(IDataWithAnnotationColumns data)
+	    {
+	        for (int i = 0; i < data.RowCount; i++)
+	        {
+	            yield return StringUtils.Concat("\t", DataAnnotationRow(data, i));
+	        }
+	    }
+
+	    private static IEnumerable<string> DataAnnotationRow(IDataWithAnnotationColumns data, int j)
+	    {
+            var words = new List<string>();
+	        for (int i = 0; i < data.CategoryColumnCount; i++)
+	        {
+	            string[] q = data.GetCategoryColumnEntryAt(i, j) ?? new string[0];
+	            words.Add((q.Length > 0 ? StringUtils.Concat(";", q) : ""));
+	        }
+	        for (int i = 0; i < data.NumericColumnCount; i++)
+	        {
+	            words.Add("" + data.NumericColumns[i][j]);
+	        }
+	        for (int i = 0; i < data.StringColumnCount; i++)
+	        {
+	            words.Add(data.StringColumns[i][j]);
+	        }
+	        for (int i = 0; i < data.MultiNumericColumnCount; i++)
+	        {
+	            double[] q = data.MultiNumericColumns[i][j];
+	            words.Add((q.Length > 0 ? StringUtils.Concat(";", q) : ""));
+	        }
+	        return words;
+	    }
+
+	    private static IEnumerable<string> CategoricalAnnotationRows(IDataWithAnnotationRows data)
+	    {
+            var rows = new List<string>();
+	        for (int i = 0; i < data.CategoryRowCount; i++)
+	        {
+	            var words = new List<string>();
+	            for (int j = 0; j < data.ColumnCount; j++)
+	            {
+	                string[] s = data.GetCategoryRowAt(i)[j];
+	                words.Add(s.Length == 0 ? "" : StringUtils.Concat(";", s));
+	            }
+                var row = words.Concat(AnnotationRowPadding((IDataWithAnnotationColumns) data));
+	            rows.Add("#!{C:" + data.CategoryRowNames[i] + "}" + StringUtils.Concat("\t", row));
+	        }
+	        return rows;
+	    }
+
+	    private static IEnumerable<string> NumericalAnnotationRows(IDataWithAnnotationRows data)
+	    {
+	        var rows = new List<string>();
+	        for (int i = 0; i < data.NumericRowCount; i++)
+	        {
+	            var words = new List<string>();
+	            for (int j = 0; j < data.ColumnCount; j++)
+	            {
+	                words.Add("" + data.NumericRows[i][j]);
+	            }
+                var row = words.Concat(AnnotationRowPadding((IDataWithAnnotationColumns) data));
+                rows.Add("#!{N:" + data.NumericRowNames[i] + "}" + StringUtils.Concat("\t", row));
+	        }
+	        return rows;
+	    }
+
+	    private static IEnumerable<string> AnnotationRowPadding(IDataWithAnnotationColumns data)
+	    {
+            var words = new List<string>();
+	        for (int j = 0; j < data.CategoryColumnCount; j++)
+	        {
+	            words.Add("");
+	        }
+	        for (int j = 0; j < data.NumericColumnCount; j++)
+	        {
+	            words.Add("");
+	        }
+	        for (int j = 0; j < data.StringColumnCount; j++)
+	        {
+	            words.Add("");
+	        }
+	        for (int j = 0; j < data.MultiNumericColumnCount; j++)
+	        {
+	            words.Add("");
+	        }
+	        return words;
+	    }
+
+	    private static IEnumerable<string> ColumnTypes(IMatrixData data)
+	    {
+	        var words = new List<string>();
+	        for (int i = 0; i < data.ColumnCount; i++)
+	        {
+	            words.Add("E");
+	        }
+	        return words.Concat(ColumnTypes((IDataWithAnnotationColumns) data));
+	    }
+
+	    private static IEnumerable<string> ColumnTypes(IDataWithAnnotationColumns data)
+	    {
+	        var words = new List<string>();
+	        for (int i = 0; i < data.CategoryColumnCount; i++)
+	        {
+	            words.Add("C");
+	        }
+	        for (int i = 0; i < data.NumericColumnCount; i++)
+	        {
+	            words.Add("N");
+	        }
+	        for (int i = 0; i < data.StringColumnCount; i++)
+	        {
+	            words.Add("T");
+	        }
+	        for (int i = 0; i < data.MultiNumericColumnCount; i++)
+	        {
+	            words.Add("M");
+	        }
+	        return words;
+	    }
+
+	    private static IEnumerable<string> ColumnDescriptions(IMatrixData data)
+	    {
+	        var words = new List<string>();
+	        for (int i = 0; i < data.ColumnCount; i++)
+	        {
+	            words.Add(data.ColumnDescriptions[i] ?? "");
+	        }
+            return words.Concat(ColumnDescriptions((IDataWithAnnotationColumns) data));
+	    }
+
+	    private static IEnumerable<string> ColumnDescriptions(IDataWithAnnotationColumns data)
+	    {
+	        var words = new List<string>();
+	        for (int i = 0; i < data.CategoryColumnCount; i++)
+	        {
+	            words.Add(data.CategoryColumnDescriptions[i] ?? "");
+	        }
+	        for (int i = 0; i < data.NumericColumnCount; i++)
+	        {
+	            words.Add(data.NumericColumnDescriptions[i] ?? "");
+	        }
+	        for (int i = 0; i < data.StringColumnCount; i++)
+	        {
+	            words.Add(data.StringColumnDescriptions[i] ?? "");
+	        }
+	        for (int i = 0; i < data.MultiNumericColumnCount; i++)
+	        {
+	            words.Add(data.MultiNumericColumnDescriptions[i] ?? "");
+	        }
+	        return words;
+	    }
+
+	    private static IEnumerable<string> ColumnNames(IMatrixData data)
+	    {
+            var words = new List<string>();
+            for (int i = 0; i < data.ColumnCount; i++)
+	        {
+	            words.Add(data.ColumnNames[i]);
+	        }
+	        return words.Concat(ColumnNames((IDataWithAnnotationColumns) data));
+	    }
+
+	    private static IEnumerable<string> ColumnNames(IDataWithAnnotationColumns data)
+	    {
+            var words = new List<string>();
+	        for (int i = 0; i < data.CategoryColumnCount; i++)
+	        {
+	            words.Add(data.CategoryColumnNames[i]);
+	        }
+	        for (int i = 0; i < data.NumericColumnCount; i++)
+	        {
+	            words.Add(data.NumericColumnNames[i]);
+	        }
+	        for (int i = 0; i < data.StringColumnCount; i++)
+	        {
+	            words.Add(data.StringColumnNames[i]);
+	        }
+	        for (int i = 0; i < data.MultiNumericColumnCount; i++)
+	        {
+	            words.Add(data.MultiNumericColumnNames[i]);
+	        }
+	        return words;
+	    }
+
+        /// <summary>
+        /// True if any column description is set.
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
+	    public static bool HasAnyDescription(IMatrixData data)
+	    {
+	        for (int i = 0; i < data.ColumnCount; i++)
+	        {
+	            if (data.ColumnDescriptions[i] != null && data.ColumnDescriptions[i].Length > 0)
+	            {
+	                return true;
+	            }
+	        }
+	        return HasAnyDescription((IDataWithAnnotationColumns) data);
+	    }
+
+	    private static bool HasAnyDescription(IDataWithAnnotationColumns data)
+	    {
+	        for (int i = 0; i < data.CategoryColumnCount; i++)
+	        {
+	            if (data.CategoryColumnDescriptions[i] != null && data.CategoryColumnDescriptions[i].Length > 0)
+	            {
+	                return true;
+	            }
+	        }
+	        for (int i = 0; i < data.NumericColumnCount; i++)
+	        {
+	            if (data.NumericColumnDescriptions[i] != null && data.NumericColumnDescriptions[i].Length > 0)
+	            {
+	                return true;
+	            }
+	        }
+	        for (int i = 0; i < data.StringColumnCount; i++)
+	        {
+	            if (data.StringColumnDescriptions[i] != null && data.StringColumnDescriptions[i].Length > 0)
+	            {
+	                return true;
+	            }
+	        }
+	        for (int i = 0; i < data.MultiNumericColumnCount; i++)
+	        {
+	            if (data.MultiNumericColumnDescriptions[i] != null && data.MultiNumericColumnDescriptions[i].Length > 0)
+	            {
+	                return true;
+	            }
+	        }
+	        return false;
+	    }
+
+	    public static void ReadMatrix(IMatrixData mdata, ProcessInfo processInfo, Func<StreamReader> getReader, string name, char separator)
+	    {
+            var annotationRows = new Dictionary<string, string[]>();
+	        string[] colNames;
+            using (var reader = getReader()) {
+                colNames = TabSep.GetColumnNames(reader, 0, commentPrefix, commentPrefixExceptions, annotationRows, separator);
+            }
+            var typeRow = annotationRows["Type"];
+            int[] eInds, nInds, cInds, tInds, mInds;
+            ColumnIndices(typeRow, out eInds, out nInds, out cInds, out tInds, out mInds);
+            var filters = new List<Tuple<Relation[], int[], bool>>();
+	        int nrows;
+	        using(var reader = getReader())
+	        using (var auxReader = getReader())
+	        {
+	            nrows = GetRowCount(reader, auxReader, eInds, filters, separator);
+	        }
+	        using (var reader = getReader())
+	        using (var auxReader = getReader())
+	        {
+	            LoadMatrixData(annotationRows, eInds, cInds, nInds, tInds, mInds, processInfo, colNames, mdata, reader,
+	                auxReader, nrows, name, separator, false, filters);
+	        }
+	    }
+
+	    public static void ReadMatrixFromFile(IMatrixData mdata, ProcessInfo processInfo, string filename, char separator)
+        {
+            ReadMatrix(mdata, processInfo, () => FileUtils.GetReader(filename), filename, separator);
+        }
+
+	    private static void ColumnIndices(string[] typeRow, out int[] eInds, out int[] nInds, out int[] cInds, out int[] tInds, out int[] mInds)
+	    {
+	        var _eInds = new List<int>();
+	        var _nInds = new List<int>();
+	        var _cInds = new List<int>();
+	        var _tInds = new List<int>();
+	        var _mInds = new List<int>();
+	        for (int i = 0; i < typeRow.Length; i++)
+	        {
+	            switch (typeRow[i])
+	            {
+	                case "E":
+	                    _eInds.Add(i);
+	                    break;
+	                case "N":
+	                    _nInds.Add(i);
+	                    break;
+	                case "C":
+	                    _cInds.Add(i);
+	                    break;
+	                case "T":
+	                    _tInds.Add(i);
+	                    break;
+	                case "M":
+	                    _mInds.Add(i);
+	                    break;
+	            }
+	        }
+	        eInds = _eInds.ToArray();
+	        nInds = _nInds.ToArray();
+	        cInds = _cInds.ToArray();
+	        tInds = _tInds.ToArray();
+	        mInds = _mInds.ToArray();
+	    }
+
+	    public static void ReadMatrixFromFile(IMatrixData mdata, ProcessInfo processInfo, string filename,
+	        int[] eInds, int[] nInds, int[] cInds, int[] tInds, int[] mInds,
+	        Parameters[] mainFilterParameters, Parameters[] numericalFilterParameters, bool shortenExpressionColumnNames)
+	    {
+	        if (!File.Exists(filename))
+	        {
+	            processInfo.ErrString = "File '" + filename + "' does not exist.";
+	            return;
+	        }
+	        string ftl = filename.ToLower();
+	        bool csv = ftl.EndsWith(".csv") || ftl.EndsWith(".csv.gz");
+	        char separator = csv ? ',' : '\t';
+	        string[] colNames;
+	        Dictionary<string, string[]> annotationRows = new Dictionary<string, string[]>();
+	        try
+	        {
+	            colNames = TabSep.GetColumnNames(filename, commentPrefix, commentPrefixExceptions,
+	                annotationRows, separator);
+	        }
+	        catch (Exception)
+	        {
+	            processInfo.ErrString = "Could not open the file '" + filename + "'. It is probably opened in another program.";
+	            return;
+	        }
+	        string origin = filename;
+	        List<Tuple<Relation[], int[], bool>> filters = new List<Tuple<Relation[], int[], bool>>();
+	        string errString;
+	        foreach (Parameters p in mainFilterParameters)
+	        {
+	            AddFilter(filters, p, eInds, out errString);
+	            if (errString != null)
+	            {
+	                processInfo.ErrString = errString;
+	                return;
+	            }
+	        }
+	        foreach (Parameters p in numericalFilterParameters)
+	        {
+	            AddFilter(filters, p, nInds, out errString);
+	            if (errString != null)
+	            {
+	                processInfo.ErrString = errString;
+	                return;
+	            }
+	        }
+	        int nrows;
+	        using(StreamReader reader = FileUtils.GetReader(filename))
+	        using (StreamReader auxReader = FileUtils.GetReader(filename))
+	        {
+	            nrows = GetRowCount(reader, auxReader, eInds, filters, separator);
+	        }
+	        using (StreamReader reader = FileUtils.GetReader(filename))
+	        using (StreamReader auxReader = FileUtils.GetReader(filename))
+	        {
+	            LoadMatrixData(annotationRows, eInds, cInds, nInds, tInds, mInds, processInfo, colNames, mdata, reader,
+	                auxReader, nrows, origin, separator, shortenExpressionColumnNames, filters);
+	        }
+	        GC.Collect();
+	    }
 	}
 }
