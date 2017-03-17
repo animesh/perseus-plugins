@@ -17,7 +17,7 @@ namespace PluginQNorm
         public bool IsActive => true;
         public int GetMaxThreads(Parameters parameters) => 1;
         public bool HasButton => true;
-        public string Url => "https://github.com/animesh/perseus-plugins/PluginQNorm";
+        public string Url => "https://github.com/animesh/perseus-plugins/tree/master/PluginQNorm";
         public Bitmap2 DisplayImage => null;
         public string Heading => "AddFun";
         public string HelpOutput => "";

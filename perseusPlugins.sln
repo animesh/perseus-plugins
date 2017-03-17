@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PerseusPluginLib.Test", "Pe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PluginQNorm", "PluginQNorm\PluginQNorm.csproj", "{267F0CA7-4B29-4DFE-B396-329C6F294A7F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PluginANN", "PluginANN\PluginANN.csproj", "{83250A4A-2B32-41F8-9DAD-60372E4B95A0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{267F0CA7-4B29-4DFE-B396-329C6F294A7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{267F0CA7-4B29-4DFE-B396-329C6F294A7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{267F0CA7-4B29-4DFE-B396-329C6F294A7F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{83250A4A-2B32-41F8-9DAD-60372E4B95A0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83250A4A-2B32-41F8-9DAD-60372E4B95A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83250A4A-2B32-41F8-9DAD-60372E4B95A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83250A4A-2B32-41F8-9DAD-60372E4B95A0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

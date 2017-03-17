@@ -4,6 +4,7 @@ using BaseLibS.Param;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
+using BaseLibS.Num;
 
 namespace PluginANN
 {
@@ -12,13 +13,13 @@ namespace PluginANN
 
         public string Name => "BP";
         public string Description => "Back Propagation";
-        public float DisplayRank => 42;
+        public float DisplayRank => -1;
         public bool IsActive => true;
         public int GetMaxThreads(Parameters parameters) => 1;
         public bool HasButton => true;
         public string Url => "https://github.com/animesh/perseus-plugins/tree/master/PluginANN";
         public Bitmap2 DisplayImage => null;
-        public string Heading => "ArtNN";
+        public string Heading => "AddFun";
         public string HelpOutput => "";
         public string[] HelpSupplTables => new string[0];
         public int NumSupplTables => 0;
