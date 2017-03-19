@@ -14,7 +14,7 @@ TestResults
 *.sln.docstates
 
 # Build results
-[Dd]ebug/
+#[Dd]ebug/
 [Rr]elease/
 x64/
 *_i.c
@@ -89,7 +89,7 @@ csx
 AppPackages/
 
 # Others
-[Bb]in
+#[Bb]in
 [Oo]bj
 sql
 TestResults
@@ -97,7 +97,7 @@ TestResults
 *.Cache
 ClientBin
 [Ss]tyle[Cc]op.*
-~$*
+#~$*
 *.dbmdl
 Generated_Code #added for RIA/Silverlight projects
 
