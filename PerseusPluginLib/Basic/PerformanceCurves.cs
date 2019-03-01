@@ -45,7 +45,7 @@ namespace PerseusPluginLib.Basic{
 			}
 			bool[] indCol = GetIndicatorColumn(falseAreIndicated, catCol, word, data);
 			List<string> expColNames = new List<string>();
-			List<float[]> expCols = new List<float[]>();
+			List<double[]> expCols = new List<double[]>();
 			foreach (int scoreColumn in scoreColumns){
 				double[] vals = scoreColumn < data.NumericColumnCount
 					? data.NumericColumns[scoreColumn]
@@ -55,15 +55,15 @@ namespace PerseusPluginLib.Basic{
 				int[] order = GetOrder(vals, largeIsGood);
 				CalcCurve(ArrayUtils.SubArray(indCol, order), showColumns, name, expCols, expColNames);
 			}
-			float[,] expData = ToMatrix(expCols);
+			double[,] expData = ToMatrix(expCols);
 			data.ColumnNames = expColNames;
 			data.Values.Set(expData);
 			data.SetAnnotationColumns( new List<string>(), new List<string[]>(), new List<string>(),
 				new List<string[][]>(), new List<string>(), new List<double[]>(), new List<string>(), new List<double[][]>());
 		}
 
-		private static float[,] ToMatrix(IList<float[]> x){
-			float[,] result = new float[x[0].Length,x.Count];
+		private static double[,] ToMatrix(IList<double[]> x){
+			double[,] result = new double[x[0].Length,x.Count];
 			for (int i = 0; i < result.GetLength(0); i++){
 				for (int j = 0; j < result.GetLength(1); j++){
 					result[i, j] = x[j][i];
@@ -72,17 +72,17 @@ namespace PerseusPluginLib.Basic{
 			return result;
 		}
 
-		public static void CalcCurve(IList<bool> x, IList<int> showColumns, string name, List<float[]> expCols,
+		public static void CalcCurve(IList<bool> x, IList<int> showColumns, string name, List<double[]> expCols,
 			List<string> expColNames){
 			CalcCurve(x, ArrayUtils.SubArray(PerformanceColumnType.allTypes, showColumns), name, expCols, expColNames);
 		}
 
-		public static void CalcCurve(IList<bool> x, PerformanceColumnType[] types, string name, List<float[]> expCols,
+		public static void CalcCurve(IList<bool> x, PerformanceColumnType[] types, string name, List<double[]> expCols,
 			List<string> expColNames){
-			float[][] columns = new float[types.Length][];
+			double[][] columns = new double[types.Length][];
 			string[] columnNames = new string[types.Length];
 			for (int i = 0; i < types.Length; i++){
-				columns[i] = new float[x.Count + 1];
+				columns[i] = new double[x.Count + 1];
 				columnNames[i] = name + " " + types[i].Name;
 			}
 			int np = 0;
@@ -99,7 +99,7 @@ namespace PerseusPluginLib.Basic{
 			double tn = nn;
 			double fn = np;
 			for (int j = 0; j < types.Length; j++){
-				columns[j][0] = (float) types[j].Calculate(tp, tn, fp, fn, np, nn);
+				columns[j][0] = types[j].Calculate(tp, tn, fp, fn, np, nn);
 			}
 			for (int i = 0; i < x.Count; i++){
 				if (x[i]){
@@ -110,7 +110,7 @@ namespace PerseusPluginLib.Basic{
 					tn--;
 				}
 				for (int j = 0; j < types.Length; j++){
-					columns[j][i + 1] = (float) types[j].Calculate(tp, tn, fp, fn, np, nn);
+					columns[j][i + 1] = types[j].Calculate(tp, tn, fp, fn, np, nn);
 				}
 			}
 			expColNames.AddRange(columnNames);
@@ -156,7 +156,7 @@ namespace PerseusPluginLib.Basic{
 
 		private static void RandomizeConstantRegion(int[] o, int startInd, int endInd){
 			int len = endInd - startInd;
-			Random2 r = new Random2();
+			Random2 r = new Random2(7);
 			int[] p = r.NextPermutation(len);
 			int[] permuted = new int[len];
 			for (int i = 0; i < len; i++){
@@ -184,31 +184,24 @@ namespace PerseusPluginLib.Basic{
 		public Parameters GetParameters(IMatrixData mdata, ref string errorString) {
 			string[] numChoice = ArrayUtils.Concat(mdata.NumericColumnNames, mdata.ColumnNames);
 			return
-				new Parameters(new Parameter[]{
-					new SingleChoiceParam("Indicated are"){
-					        Values = new[]{"False", "True"},
-                            Help="Specify whether rows containing the 'Indicator' are true or false."
-					    },
-					new SingleChoiceParam("In column"){
-					        Values = mdata.CategoryColumnNames,
-                            Help="The categorical column containing the 'Indicator'."
-					    }, 
-                    new StringParam("Indicator"){
-                            Value = "+",
-                            Help="The string that will be searched in the above specified categorical column to define which rows are right or wrong predicted."
-                        },
-					new MultiChoiceParam("Scores"){
-					        Value = new[]{0}, Values = numChoice,
-                            Help="The expression columns that contain the classification scores by which the rows will be ranked."
-					    },
-					new BoolParam("Large values are good"){
-					        Value = true,
-                            Help="If checked, large score values are considered good, otherwise the lower the score value the better."
-					    },
-					new MultiChoiceParam("Display quantity"){
-					        Values = PerformanceColumnType.AllTypeNames,
-                            Help="The quantities that should be calculated."
-					    }
+				new Parameters(new SingleChoiceParam("Indicated are"){
+					Values = new[]{"False", "True"},
+					Help="Specify whether rows containing the 'Indicator' are true or false."
+				}, new SingleChoiceParam("In column"){
+					Values = mdata.CategoryColumnNames,
+					Help="The categorical column containing the 'Indicator'."
+				}, new StringParam("Indicator"){
+					Value = "+",
+					Help="The string that will be searched in the above specified categorical column to define which rows are right or wrong predicted."
+				}, new MultiChoiceParam("Scores"){
+					Value = new[]{0}, Values = numChoice,
+					Help="The expression columns that contain the classification scores by which the rows will be ranked."
+				}, new BoolParam("Large values are good"){
+					Value = true,
+					Help="If checked, large score values are considered good, otherwise the lower the score value the better."
+				}, new MultiChoiceParam("Display quantity"){
+					Values = PerformanceColumnType.AllTypeNames,
+					Help="The quantities that should be calculated."
 				});
 		}
 

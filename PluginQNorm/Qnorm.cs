@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿//right click and build the project from "Solution" dropdown in Visual Studio, copy the created PluginQNorm.dll from perseus-plugins\PluginQNorm\bin\Debug\ folder into the Perseus_1.6.5.0\Perseus\bin\ folder, should appear as "AddFun" dropdown in "Processsing" menu as "Qnorm",  tested against https://davetang.org/muse/2014/07/07/quantile-normalisation-in-r/ example available as test.txt file in this plugin directory perseus-plugins\PluginQNorm with "Matrix access set to "Columns" 
+using System.Collections.Generic;
 using BaseLibS.Graph;
 using BaseLibS.Param;
 using PerseusApi.Document;

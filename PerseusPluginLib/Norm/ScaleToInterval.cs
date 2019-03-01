@@ -43,13 +43,10 @@ namespace PerseusPluginLib.Norm{
 
 		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
 			return
-				new Parameters(new Parameter[]{
-					new SingleChoiceParam("Matrix access"){
-						Values = new[]{"Rows", "Columns"},
-						Help = "Specifies if the analysis is performed on the rows or the columns of the matrix."
-					},
-					new DoubleParam("Minimum", 0), new DoubleParam("Maximum", 1)
-				});
+				new Parameters(new SingleChoiceParam("Matrix access"){
+					Values = new[]{"Rows", "Columns"},
+					Help = "Specifies if the analysis is performed on the rows or the columns of the matrix."
+				}, new DoubleParam("Minimum", 0), new DoubleParam("Maximum", 1));
 		}
 
 		public static void MapToInterval1(bool rows, IMatrixData data, double min, double max, int nthreads){
@@ -68,11 +65,9 @@ namespace PerseusPluginLib.Norm{
 					vals.Add(q);
 				}
 			}
-			double mind;
-			double maxd;
-			ArrayUtils.MinMax(vals, out mind, out maxd);
+			ArrayUtils.MinMax(vals, out double mind, out double maxd);
 			for (int j = 0; j < data.ColumnCount; j++){
-				data.Values.Set(i, j, (float) (min + (max - min)/(maxd - mind)*(data.Values.Get(i, j) - mind)));
+				data.Values.Set(i, j, min + (max - min)/(maxd - mind)*(data.Values.Get(i, j) - mind));
 			}
 		}
 
@@ -84,11 +79,9 @@ namespace PerseusPluginLib.Norm{
 					vals.Add(q);
 				}
 			}
-			double mind;
-			double maxd;
-			ArrayUtils.MinMax(vals, out mind, out maxd);
+			ArrayUtils.MinMax(vals, out double mind, out double maxd);
 			for (int i = 0; i < data.RowCount; i++){
-				data.Values.Set(i, j, (float) (min + (max - min)/(maxd - mind)*(data.Values.Get(i, j) - mind)));
+				data.Values.Set(i, j, min + (max - min)/(maxd - mind)*(data.Values.Get(i, j) - mind));
 			}
 		}
 	}

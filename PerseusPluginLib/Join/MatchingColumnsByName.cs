@@ -6,9 +6,13 @@ using BaseLibS.Param;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
+using PerseusApi.Utils;
 using PerseusPluginLib.Utils;
 
 namespace PerseusPluginLib.Join{
+	/// <summary>
+	/// Matching columns by name concatenates the rows from two matrices.
+	/// </summary>
 	public class MatchingColumnsByName : IMatrixMultiProcessing{
 		public bool HasButton => true;
 		public Bitmap2 DisplayImage => PerseusPluginUtils.GetImage("combineButton.Image.png");
@@ -16,7 +20,8 @@ namespace PerseusPluginLib.Join{
 		public bool IsActive => true;
 		public float DisplayRank => -4;
 		public string HelpOutput => "";
-		public string Description => "Two matrices are merged by matching columns by their names.";
+		public string Description => "Two matrices are merged by matching columns by their names. " +
+		                             "The resulting matrix contains the rows of both matrices.";
 		public string[] HelpSupplTables => new string[0];
 		public int NumSupplTables => 0;
 		public string[] HelpDocuments => new string[0];
@@ -92,13 +97,11 @@ namespace PerseusPluginLib.Join{
 			int nrows1 = mdata1.RowCount;
 			int nrows2 = mdata2.RowCount;
 			int nrows = nrows1 + nrows2;
-			Dictionary<string, int> dic1;
-			Dictionary<string, int> dic2;
-			string[] expColNames = SpecialSort(mdata1.ColumnNames, mdata2.ColumnNames, out dic1, out dic2);
-			float[,] ex = new float[nrows, expColNames.Length];
+			string[] expColNames = SpecialSort(mdata1.ColumnNames, mdata2.ColumnNames, out Dictionary<string, int> dic1, out Dictionary<string, int> dic2);
+			double[,] ex = new double[nrows, expColNames.Length];
 			for (int i = 0; i < ex.GetLength(0); i++){
 				for (int j = 0; j < ex.GetLength(1); j++){
-					ex[i, j] = float.NaN;
+					ex[i, j] = double.NaN;
 				}
 			}
 			for (int i = 0; i < expColNames.Length; i++){
@@ -169,7 +172,7 @@ namespace PerseusPluginLib.Join{
 			}
 			for (int i = 0; i < catColNames.Length; i++){
 				if (dic1.ContainsKey(catColNames[i])){
-					int ind = dic1[stringColNames[i]];
+					int ind = dic1[catColNames[i]];
 					for (int j = 0; j < nrows1; j++){
 						catCols[i][j] = mdata1.GetCategoryColumnEntryAt(ind, j);
 					}
@@ -204,10 +207,8 @@ namespace PerseusPluginLib.Join{
 					}
 				}
 			}
-			IMatrixData result = (IMatrixData) mdata1.CreateNewInstance();
-			result.ColumnNames = new List<string>(expColNames);
+		    IMatrixData result = PerseusFactory.CreateMatrixData(ex, expColNames.ToList());
 			result.ColumnDescriptions = result.ColumnNames;
-			result.Values.Set(ex);
 			result.NumericColumnNames = new List<string>(numColNames);
 			result.NumericColumnDescriptions = result.NumericColumnNames;
 			result.NumericColumns = numCols;

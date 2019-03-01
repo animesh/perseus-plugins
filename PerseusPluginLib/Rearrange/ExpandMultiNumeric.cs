@@ -52,7 +52,9 @@ namespace PerseusPluginLib.Rearrange{
 				return;
 			}
 			int rowCount = GetNewRowCount(mdata, multiNumCols, stringCols);
-			float[,] expVals = new float[rowCount, mdata.ColumnCount];
+			bool[,] impVals = new bool[rowCount, mdata.ColumnCount];
+			double[,] qualVals = new double[rowCount, mdata.ColumnCount];
+			double[,] expVals = new double[rowCount, mdata.ColumnCount];
 			List<string[]> stringC = new List<string[]>();
 			for (int i = 0; i < mdata.StringColumnCount; i++){
 				stringC.Add(new string[rowCount]);
@@ -71,8 +73,7 @@ namespace PerseusPluginLib.Rearrange{
 			}
 			int count = 0;
 			for (int i = 0; i < mdata.RowCount; i++){
-				string err;
-				int entryCount = GetEntryCount(i, mdata, multiNumCols, stringCols, out err);
+				int entryCount = GetEntryCount(i, mdata, multiNumCols, stringCols, out string err);
 				if (err != null){
 					processInfo.ErrString = err;
 					return;
@@ -82,6 +83,15 @@ namespace PerseusPluginLib.Rearrange{
 				for (int j = 0; j < entryCount; j++){
 					for (int k = 0; k < mdata.ColumnCount; k++){
 						expVals[count + j, k] = mdata.Values.Get(i, k);
+					}
+				    if (mdata.HasQuality)
+				    {
+                        for (int k = 0; k < mdata.ColumnCount; k++){
+                            qualVals[count + j, k] = mdata.Quality.Get(i, k);
+                        }
+				    }
+					for (int k = 0; k < mdata.ColumnCount; k++){
+						impVals[count + j, k] = mdata.IsImputed[i, k];
 					}
 					for (int k = 0; k < mdata.NumericColumnCount; k++){
 						numC[k][count + j] = mdata.NumericColumns[k][i];
@@ -132,6 +142,11 @@ namespace PerseusPluginLib.Rearrange{
 			}
 			mdata.ColumnNames = mdata.ColumnNames;
 			mdata.Values.Set(expVals);
+		    if (mdata.HasQuality)
+		    {
+		        mdata.Quality.Set(qualVals);
+		    }
+            mdata.IsImputed.Set(impVals);
 			mdata.SetAnnotationColumns(mdata.StringColumnNames, stringC, mdata.CategoryColumnNames, catC,
 				new List<string>(ArrayUtils.Concat(mdata.NumericColumnNames,
 					ArrayUtils.SubList(mdata.MultiNumericColumnNames, multiNumCols))), numC,
@@ -205,17 +220,14 @@ namespace PerseusPluginLib.Rearrange{
 
 		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
 			return
-				new Parameters(new Parameter[]{
-					new MultiChoiceParam("Multi-numeric columns"){
-						Values = mdata.MultiNumericColumnNames,
-						Value = new int[0],
-						Help = "Select here the multi-numeric colums that should be expanded."
-					},
-					new MultiChoiceParam("Text columns"){
-						Values = mdata.StringColumnNames,
-						Value = new int[0],
-						Help = "Select here the text colums that should be expanded."
-					}
+				new Parameters(new MultiChoiceParam("Multi-numeric columns"){
+					Values = mdata.MultiNumericColumnNames,
+					Value = new int[0],
+					Help = "Select here the multi-numeric colums that should be expanded."
+				}, new MultiChoiceParam("Text columns"){
+					Values = mdata.StringColumnNames,
+					Value = new int[0],
+					Help = "Select here the text colums that should be expanded."
 				});
 		}
 	}

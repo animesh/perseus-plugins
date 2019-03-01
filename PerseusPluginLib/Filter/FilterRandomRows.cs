@@ -31,15 +31,14 @@ namespace PerseusPluginLib.Filter{
 
 		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
 			return
-				new Parameters(new Parameter[]
-				{new IntParam("Number of rows", mdata.RowCount), PerseusPluginUtils.GetFilterModeParam(true)});
+				new Parameters(new IntParam("Number of rows", mdata.RowCount), PerseusPluginUtils.CreateFilterModeParam(true));
 		}
 
 		public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables,
 			ref IDocumentData[] documents, ProcessInfo processInfo){
 			int nrows = param.GetParam<int>("Number of rows").Value;
 			nrows = Math.Min(nrows, mdata.RowCount);
-			Random2 rand = new Random2();
+			Random2 rand = new Random2(7);
 			int[] rows = ArrayUtils.SubArray(rand.NextPermutation(mdata.RowCount), nrows);
 			PerseusPluginUtils.FilterRows(mdata, param, rows);
 		}

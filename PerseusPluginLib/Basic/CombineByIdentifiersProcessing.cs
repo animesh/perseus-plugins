@@ -79,9 +79,7 @@ namespace PerseusPluginLib.Basic{
 			AverageType atype = GetAverageType(param.GetParam<int>("Average type for expression columns").Value);
 			string[] ids2 = mdata.StringColumns[param.GetParam<int>("ID column").Value];
 			string[][] ids = SplitIds(ids2);
-			int[] present;
-			int[] absent;
-			GetPresentAbsentIndices(ids, out present, out absent);
+			GetPresentAbsentIndices(ids, out int[] present, out int[] absent);
 			ids = ArrayUtils.SubArray(ids, present);
 			int[][] rowInds = new int[present.Length][];
 			for (int i = 0; i < rowInds.Length; i++){
@@ -93,12 +91,12 @@ namespace PerseusPluginLib.Basic{
 			}
 			int nrows = rowInds.Length;
 			int ncols = mdata.ColumnCount;
-			float[,] expVals = new float[nrows, ncols];
+			double[,] expVals = new double[nrows, ncols];
 			for (int j = 0; j < ncols; j++){
 				double[] c = ArrayUtils.ToDoubles(mdata.Values.GetColumn(j));
 				for (int i = 0; i < nrows; i++){
 					double[] d = ArrayUtils.SubArray(c, rowInds[i]);
-					expVals[i, j] = (float) Average(d, atype);
+					expVals[i, j] = Average(d, atype);
 				}
 			}
 			mdata.Values.Set(expVals);

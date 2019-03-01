@@ -49,18 +49,14 @@ namespace PerseusPluginLib.Filter{
 		public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables,
 			ref IDocumentData[] documents, ProcessInfo processInfo){
 			const bool rows = true;
-			bool percentage;
-			int minValids = PerseusPluginUtils.GetMinValids(param, out percentage);
+			int minValids = PerseusPluginUtils.GetMinValids(param, out bool percentage);
 			ParameterWithSubParams<int> modeParam = param.GetParamWithSubParams<int>("Mode");
 			int modeInd = modeParam.Value;
 			if (modeInd != 0 && mdata.CategoryRowNames.Count == 0){
 				processInfo.ErrString = "No grouping is defined.";
 				return;
 			}
-			FilteringMode filterMode;
-			double threshold;
-			double threshold2;
-			PerseusPluginUtils.ReadValuesShouldBeParams(param, out filterMode, out threshold, out threshold2);
+			PerseusPluginUtils.ReadValuesShouldBeParams(param, out FilteringMode filterMode, out double threshold, out double threshold2);
 			if (modeInd != 0){
 				int gind = modeParam.GetSubParameters().GetParam<int>("Grouping").Value;
 				string[][] groupCol = mdata.GetCategoryRowAt(gind);
@@ -117,20 +113,16 @@ namespace PerseusPluginLib.Filter{
 
 		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
             return
-				new Parameters(new []{
-					PerseusPluginUtils.GetMinValuesParam(true),
-					new SingleChoiceWithSubParams("Mode"){
-						Values = new[]{"In total", "In each group", "In at least one group"},
-						SubParams =new[]{
-							new Parameters(new Parameter[0]),
-							new Parameters(new Parameter[]{new SingleChoiceParam("Grouping"){Values = mdata.CategoryRowNames}}),
-							new Parameters(new Parameter[]{new SingleChoiceParam("Grouping"){Values = mdata.CategoryRowNames}})
-						},
-						ParamNameWidth = 50,
-						TotalWidth = 731
+				new Parameters(PerseusPluginUtils.GetMinValuesParam(mdata, true), new SingleChoiceWithSubParams("Mode"){
+					Values = new[]{"In total", "In each group", "In at least one group"},
+					SubParams =new[]{
+						new Parameters(new Parameter[0]),
+						new Parameters(new Parameter[]{new SingleChoiceParam("Grouping"){Values = mdata.CategoryRowNames}}),
+						new Parameters(new Parameter[]{new SingleChoiceParam("Grouping"){Values = mdata.CategoryRowNames}})
 					},
-					PerseusPluginUtils.GetValuesShouldBeParam(), PerseusPluginUtils.GetFilterModeParam(false)
-				});
+					ParamNameWidth = 50,
+					TotalWidth = 731
+				}, PerseusPluginUtils.GetValuesShouldBeParam(), PerseusPluginUtils.CreateFilterModeParam(false));
 		}
 	}
 }

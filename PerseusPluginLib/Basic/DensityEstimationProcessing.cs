@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using BaseLibS.Graph;
 using BaseLibS.Num;
 using BaseLibS.Param;
@@ -50,17 +51,11 @@ namespace PerseusPluginLib.Basic{
 			int typeInd = param.GetParam<int>("Distribution type").Value;
 			int points = param.GetParam<int>("Number of points").Value;
 			for (int k = 0; k < colIndx.Length; k++){
-				float[] xvals = GetColumn(mdata, colIndx[k]);
-				float[] yvals = GetColumn(mdata, colIndy[k]);
-				float[] xvals1;
-				float[] yvals1;
-				GetValidPairs(xvals, yvals, out xvals1, out yvals1);
-				double xmin;
-				double xmax;
-				double ymin;
-				double ymax;
-				DensityEstimation.CalcRanges(xvals1, yvals1, out xmin, out xmax, out ymin, out ymax);
-				float[,] values = DensityEstimation.GetValuesOnGrid(xvals1, xmin, (xmax - xmin)/points, points, yvals1, ymin,
+				double[] xvals = GetColumn(mdata, colIndx[k]);
+				double[] yvals = GetColumn(mdata, colIndy[k]);
+				GetValidPairs(xvals, yvals, out double[] xvals1, out double[] yvals1);
+				DensityEstimation.CalcRanges(xvals1, yvals1, out double xmin, out double xmax, out double ymin, out double ymax);
+				double[,] values = DensityEstimation.GetValuesOnGrid(xvals1, xmin, (xmax - xmin)/points, points, yvals1, ymin,
 					(ymax - ymin)/points, points);
 				if (typeInd == 1){
 					MakeConditional1(values);
@@ -80,7 +75,7 @@ namespace PerseusPluginLib.Basic{
 				for (int i = 0; i < points; i++){
 					ymat[i] = ymin + i*(ymax - ymin)/points;
 				}
-				float[,] percvalues = CalcExcludedPercentage(values);
+				double[,] percvalues = CalcExcludedPercentage(values);
 				double[] dvals = new double[xvals.Length];
 				double[] pvals = new double[xvals.Length];
 				for (int i = 0; i < dvals.Length; i++){
@@ -106,11 +101,11 @@ namespace PerseusPluginLib.Basic{
 			}
 		}
 
-		private static void GetValidPairs(IList<float> x, IList<float> y, out float[] x1, out float[] y1){
-			List<float> x2 = new List<float>();
-			List<float> y2 = new List<float>();
+		private static void GetValidPairs(IList<double> x, IList<double> y, out double[] x1, out double[] y1){
+			List<double> x2 = new List<double>();
+			List<double> y2 = new List<double>();
 			for (int i = 0; i < x.Count; i++){
-				if (!float.IsNaN(x[i]) && !float.IsInfinity(x[i]) && !float.IsNaN(y[i]) && !float.IsInfinity(y[i])){
+				if (!double.IsNaN(x[i]) && !double.IsInfinity(x[i]) && !double.IsNaN(y[i]) && !double.IsInfinity(y[i])){
 					x2.Add(x[i]);
 					y2.Add(y[i]);
 				}
@@ -119,8 +114,8 @@ namespace PerseusPluginLib.Basic{
 			y1 = y2.ToArray();
 		}
 
-		private static void MakeConditional1(float[,] values){
-			float[] m = new float[values.GetLength(0)];
+		private static void MakeConditional1(double[,] values){
+			double[] m = new double[values.GetLength(0)];
 			for (int i = 0; i < m.Length; i++){
 				for (int j = 0; j < values.GetLength(1); j++){
 					m[i] += values[i, j];
@@ -133,8 +128,8 @@ namespace PerseusPluginLib.Basic{
 			}
 		}
 
-		private static void MakeConditional2(float[,] values){
-			float[] m = new float[values.GetLength(1)];
+		private static void MakeConditional2(double[,] values){
+			double[] m = new double[values.GetLength(1)];
 			for (int i = 0; i < m.Length; i++){
 				for (int j = 0; j < values.GetLength(0); j++){
 					m[i] += values[j, i];
@@ -147,9 +142,9 @@ namespace PerseusPluginLib.Basic{
 			}
 		}
 
-		private static void MakeConditional3(float[,] values){
-			float[] m1 = new float[values.GetLength(0)];
-			float[] m2 = new float[values.GetLength(2)];
+		private static void MakeConditional3(double[,] values){
+			double[] m1 = new double[values.GetLength(0)];
+			double[] m2 = new double[values.GetLength(2)];
 			for (int i = 0; i < m1.Length; i++){
 				for (int j = 0; j < values.GetLength(1); j++){
 					m1[i] += values[i, j];
@@ -163,14 +158,14 @@ namespace PerseusPluginLib.Basic{
 			}
 		}
 
-		private static float[] GetColumn(IMatrixData matrixData, int ind){
+		private static double[] GetColumn(IMatrixData matrixData, int ind){
 			if (ind < matrixData.ColumnCount){
-				return ArrayUtils.ToFloats(matrixData.Values.GetColumn(ind));
+				return matrixData.Values.GetColumn(ind).ToArray();
 			}
 			double[] x = matrixData.NumericColumns[ind - matrixData.ColumnCount];
-			float[] f = new float[x.Length];
+			double[] f = new double[x.Length];
 			for (int i = 0; i < x.Length; i++){
-				f[i] = (float) x[i];
+				f[i] = x[i];
 			}
 			return f;
 		}
@@ -181,10 +176,10 @@ namespace PerseusPluginLib.Basic{
 				: matrixData.NumericColumnNames[ind - matrixData.ColumnCount];
 		}
 
-		private static float[,] CalcExcludedPercentage(float[,] values){
+		private static double[,] CalcExcludedPercentage(double[,] values){
 			int n0 = values.GetLength(0);
 			int n1 = values.GetLength(1);
-			float[] v = new float[n0*n1];
+			double[] v = new double[n0*n1];
 			int[] ind0 = new int[n0*n1];
 			int[] ind1 = new int[n0*n1];
 			int count = 0;
@@ -201,13 +196,13 @@ namespace PerseusPluginLib.Basic{
 			ind0 = ArrayUtils.SubArray(ind0, o);
 			ind1 = ArrayUtils.SubArray(ind1, o);
 			double total = 0;
-			foreach (float t in v){
+			foreach (double t in v){
 				total += t;
 			}
-			float[,] result = new float[n0, n1];
+			double[,] result = new double[n0, n1];
 			double sum = 0;
 			for (int i = 0; i < v.Length; i++){
-				result[ind0[i], ind1[i]] = (float) (sum/total);
+				result[ind0[i], ind1[i]] = sum/total;
 				sum += v[i];
 			}
 			return result;
@@ -218,25 +213,20 @@ namespace PerseusPluginLib.Basic{
 			int[] sel1 = vals.Length > 0 ? new[]{0} : new int[0];
 			int[] sel2 = vals.Length > 1 ? new[]{1} : (vals.Length > 0 ? new[]{0} : new int[0]);
 			return
-				new Parameters(new Parameter[]{
-					new MultiChoiceParam("x", sel1){
-						Values = vals,
-						Repeats = true,
-						Help =
-							"Colums for the first dimension. Multiple choices can be made leading to the creation of multiple density maps."
-					},
-					new MultiChoiceParam("y", sel2){
-						Values = vals,
-						Repeats = true,
-						Help = "Colums for the second dimension. The number has to be the same as for the 'Column 1' parameter."
-					},
-					new IntParam("Number of points", 300){
-						Help =
-							"This parameter defines the resolution of the density map. It specifies the number of pixels per dimension. Large " +
-							"values may lead to increased computing times."
-					},
-					new SingleChoiceParam("Distribution type"){Values = new[]{"P(x,y)", "P(y|x)", "P(x|y)", "P(x,y)/(P(x)*P(y))"}}
-				});
+				new Parameters(new MultiChoiceParam("x", sel1){
+					Values = vals,
+					Repeats = true,
+					Help =
+						"Colums for the first dimension. Multiple choices can be made leading to the creation of multiple density maps."
+				}, new MultiChoiceParam("y", sel2){
+					Values = vals,
+					Repeats = true,
+					Help = "Colums for the second dimension. The number has to be the same as for the 'Column 1' parameter."
+				}, new IntParam("Number of points", 300){
+					Help =
+						"This parameter defines the resolution of the density map. It specifies the number of pixels per dimension. Large " +
+						"values may lead to increased computing times."
+				}, new SingleChoiceParam("Distribution type"){Values = new[]{"P(x,y)", "P(y|x)", "P(x|y)", "P(x,y)/(P(x)*P(y))"}});
 		}
 	}
 }

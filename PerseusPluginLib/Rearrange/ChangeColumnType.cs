@@ -92,8 +92,8 @@ namespace PerseusPluginLib.Rearrange{
 		}
 
 		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
-			var choice = new[]{"Main", "Numerical", "Categorical", "Text", "Multi-numerical"};
-			var subParams = new List<Parameters>{
+			string[] choice = new[]{"Main", "Numerical", "Categorical", "Text", "Multi-numerical"};
+			List<Parameters> subParams = new List<Parameters>{
 				GetSubParams(mdata.ColumnNames, GetExpressionSelection()),
 				GetSubParams(mdata.NumericColumnNames, GetNumericSelection()),
 				GetSubParams(mdata.CategoryColumnNames, GetCategoricalSelection()),
@@ -117,7 +117,7 @@ namespace PerseusPluginLib.Rearrange{
 			string[] names = ArrayUtils.SubArray(mdata.StringColumnNames, colInds);
 			string[] descriptions = ArrayUtils.SubArray(mdata.StringColumnDescriptions, colInds);
 			string[][] str = ArrayUtils.SubArray(mdata.StringColumns, colInds);
-			var newCat = new string[str.Length][][];
+			string[][][] newCat = new string[str.Length][][];
 			for (int j = 0; j < str.Length; j++){
 				newCat[j] = new string[str[j].Length][];
 				for (int i = 0; i < newCat[j].Length; i++){
@@ -143,7 +143,7 @@ namespace PerseusPluginLib.Rearrange{
 			string[] name = ArrayUtils.SubArray(mdata.StringColumnNames, colInds);
 			string[] description = ArrayUtils.SubArray(mdata.StringColumnDescriptions, colInds);
 			string[][] str = ArrayUtils.SubArray(mdata.StringColumns, colInds);
-			var newNum = new double[str.Length][];
+			double[][] newNum = new double[str.Length][];
 			for (int j = 0; j < str.Length; j++){
 				newNum[j] = new double[str[j].Length];
 				for (int i = 0; i < newNum[j].Length; i++){
@@ -151,8 +151,7 @@ namespace PerseusPluginLib.Rearrange{
 						newNum[j][i] = double.NaN;
 					} else{
 						string x = str[j][i];
-						double d;
-						bool success = double.TryParse(x, out d);
+						bool success = Parser.TryDouble(x, out double d);
 						newNum[j][i] = success ? d : double.NaN;
 					}
 				}
@@ -170,7 +169,7 @@ namespace PerseusPluginLib.Rearrange{
 			string[] name = ArrayUtils.SubArray(mdata.NumericColumnNames, colInds);
 			string[] description = ArrayUtils.SubArray(mdata.NumericColumnDescriptions, colInds);
 			double[][] num = ArrayUtils.SubArray(mdata.NumericColumns, colInds);
-			var newString = new string[num.Length][];
+			string[][] newString = new string[num.Length][];
 			for (int j = 0; j < num.Length; j++){
 				newString[j] = new string[num[j].Length];
 				for (int i = 0; i < newString[j].Length; i++){
@@ -191,7 +190,7 @@ namespace PerseusPluginLib.Rearrange{
 			string[] name = ArrayUtils.SubArray(mdata.MultiNumericColumnNames, colInds);
 			string[] description = ArrayUtils.SubArray(mdata.MultiNumericColumnDescriptions, colInds);
 			double[][][] num = ArrayUtils.SubArray(mdata.MultiNumericColumns, colInds);
-			var newString = new string[num.Length][];
+			string[][] newString = new string[num.Length][];
 			for (int j = 0; j < num.Length; j++){
 				newString[j] = new string[num[j].Length];
 				for (int i = 0; i < newString[j].Length; i++){
@@ -212,7 +211,7 @@ namespace PerseusPluginLib.Rearrange{
 			string[] name = ArrayUtils.SubArray(mdata.StringColumnNames, colInds);
 			string[] description = ArrayUtils.SubArray(mdata.StringColumnDescriptions, colInds);
 			string[][] str = ArrayUtils.SubArray(mdata.StringColumns, colInds);
-			var newMNum = new double[str.Length][][];
+			double[][][] newMNum = new double[str.Length][][];
 			for (int j = 0; j < str.Length; j++){
 				newMNum[j] = new double[str[j].Length][];
 				for (int i = 0; i < newMNum[j].Length; i++){
@@ -223,8 +222,7 @@ namespace PerseusPluginLib.Rearrange{
 						string[] y = x.Length > 0 ? x.Split(';') : new string[0];
 						newMNum[j][i] = new double[y.Length];
 						for (int k = 0; k < y.Length; k++){
-							double d;
-							bool success = double.TryParse(y[k], out d);
+							bool success = Parser.TryDouble(y[k], out double d);
 							newMNum[j][i][k] = success ? d : double.NaN;
 						}
 					}
@@ -243,15 +241,14 @@ namespace PerseusPluginLib.Rearrange{
 			string[] name = ArrayUtils.SubArray(mdata.CategoryColumnNames, colInds);
 			string[] description = ArrayUtils.SubArray(mdata.CategoryColumnDescriptions, colInds);
 			string[][][] cat = PerseusPluginUtils.GetCategoryColumns(mdata, colInds).ToArray();
-			var newNum = new double[cat.Length][];
+			double[][] newNum = new double[cat.Length][];
 			for (int j = 0; j < cat.Length; j++){
 				newNum[j] = new double[cat[j].Length];
 				for (int i = 0; i < newNum[j].Length; i++){
 					if (cat[j][i] == null || cat[j][i].Length == 0){
 						newNum[j][i] = double.NaN;
 					} else{
-						double x;
-						bool s = double.TryParse(cat[j][i][0], out x);
+						bool s = Parser.TryDouble(cat[j][i][0], out double x);
 						if (s){
 							newNum[j][i] = x;
 						} else{
@@ -273,7 +270,7 @@ namespace PerseusPluginLib.Rearrange{
 			string[] names = ArrayUtils.SubArray(mdata.CategoryColumnNames, colInds);
 			string[] descriptions = ArrayUtils.SubArray(mdata.CategoryColumnDescriptions, colInds);
 			string[][][] cat = PerseusPluginUtils.GetCategoryColumns(mdata, colInds).ToArray();
-			var newString = new string[cat.Length][];
+			string[][] newString = new string[cat.Length][];
 			for (int j = 0; j < cat.Length; j++){
 				newString[j] = new string[cat[j].Length];
 				for (int i = 0; i < newString[j].Length; i++){
@@ -297,7 +294,7 @@ namespace PerseusPluginLib.Rearrange{
 			string[] names = ArrayUtils.SubArray(mdata.NumericColumnNames, colInds);
 			string[] descriptions = ArrayUtils.SubArray(mdata.NumericColumnDescriptions, colInds);
 			double[][] num = ArrayUtils.SubArray(mdata.NumericColumns, colInds);
-			var newCat = new string[num.Length][][];
+			string[][][] newCat = new string[num.Length][][];
 			for (int j = 0; j < num.Length; j++){
 				newCat[j] = new string[num[j].Length][];
 				for (int i = 0; i < newCat[j].Length; i++){
@@ -321,15 +318,15 @@ namespace PerseusPluginLib.Rearrange{
 			string[] names = ArrayUtils.SubArray(mdata.NumericColumnNames, colInds);
 			string[] descriptions = ArrayUtils.SubArray(mdata.NumericColumnDescriptions, colInds);
 			double[][] num = ArrayUtils.SubArray(mdata.NumericColumns, colInds);
-			var newEx = new float[num.Length][];
+			double[][] newEx = new double[num.Length][];
 			for (int j = 0; j < num.Length; j++){
-				newEx[j] = new float[num[j].Length];
+				newEx[j] = new double[num[j].Length];
 				for (int i = 0; i < newEx[j].Length; i++){
-					newEx[j][i] = (float) num[j][i];
+					newEx[j][i] = num[j][i];
 				}
 			}
-			float[,] newExp = new float[mdata.RowCount,mdata.ColumnCount + num.Length];
-			float[,] newQual = new float[mdata.RowCount,mdata.ColumnCount + num.Length];
+			double[,] newExp = new double[mdata.RowCount,mdata.ColumnCount + num.Length];
+			double[,] newQual = new double[mdata.RowCount,mdata.ColumnCount + num.Length];
 			bool[,] newIsImputed = new bool[mdata.RowCount,mdata.ColumnCount + num.Length];
 			for (int i = 0; i < mdata.RowCount; i++){
 				for (int j = 0; j < mdata.ColumnCount; j++){
@@ -339,7 +336,7 @@ namespace PerseusPluginLib.Rearrange{
 				}
 				for (int j = 0; j < newEx.Length; j++){
 					newExp[i, j + mdata.ColumnCount] = newEx[j][i];
-					newQual[i, j + mdata.ColumnCount] = float.NaN;
+					newQual[i, j + mdata.ColumnCount] = double.NaN;
 					newIsImputed[i, j + mdata.ColumnCount] = false;
 				}
 			}
@@ -357,6 +354,10 @@ namespace PerseusPluginLib.Rearrange{
 			for (int i = 0; i < mdata.NumericRows.Count; i++){
 				mdata.NumericRows[i] = ExtendNumericRow(mdata.NumericRows[i], num.Length);
 			}
+			for (int i = 0; i < mdata.StringRows.Count; i++)
+			{
+				mdata.StringRows[i] = ExtendStringRow(mdata.StringRows[i], num.Length);
+			}
 		}
 
 		private static void StringToExpression(IList<int> colInds, IMatrixData mdata){
@@ -364,17 +365,16 @@ namespace PerseusPluginLib.Rearrange{
 			string[] names = ArrayUtils.SubArray(mdata.StringColumnNames, colInds);
 			string[] descriptions = ArrayUtils.SubArray(mdata.StringColumnDescriptions, colInds);
 			string[][] str = ArrayUtils.SubArray(mdata.StringColumns, colInds);
-			var newEx = new float[str.Length][];
+			double[][] newEx = new double[str.Length][];
 			for (int j = 0; j < str.Length; j++){
-				newEx[j] = new float[str[j].Length];
+				newEx[j] = new double[str[j].Length];
 				for (int i = 0; i < newEx[j].Length; i++){
-					float f;
-					bool success = float.TryParse(str[j][i], out f);
-					newEx[j][i] = success ? f : float.NaN;
+					bool success = Parser.TryDouble(str[j][i], out double f);
+					newEx[j][i] = success ? f : double.NaN;
 				}
 			}
-			float[,] newExp = new float[mdata.RowCount,mdata.ColumnCount + str.Length];
-			float[,] newQual = new float[mdata.RowCount,mdata.ColumnCount + str.Length];
+			double[,] newExp = new double[mdata.RowCount,mdata.ColumnCount + str.Length];
+			double[,] newQual = new double[mdata.RowCount,mdata.ColumnCount + str.Length];
 			bool[,] newIsImputed = new bool[mdata.RowCount,mdata.ColumnCount + str.Length];
 			for (int i = 0; i < mdata.RowCount; i++){
 				for (int j = 0; j < mdata.ColumnCount; j++){
@@ -384,7 +384,7 @@ namespace PerseusPluginLib.Rearrange{
 				}
 				for (int j = 0; j < newEx.Length; j++){
 					newExp[i, j + mdata.ColumnCount] = newEx[j][i];
-					newQual[i, j + mdata.ColumnCount] = float.NaN;
+					newQual[i, j + mdata.ColumnCount] = double.NaN;
 					newIsImputed[i, j + mdata.ColumnCount] = false;
 				}
 			}
@@ -402,6 +402,10 @@ namespace PerseusPluginLib.Rearrange{
 			for (int i = 0; i < mdata.NumericRows.Count; i++){
 				mdata.NumericRows[i] = ExtendNumericRow(mdata.NumericRows[i], str.Length);
 			}
+			for (int i = 0; i < mdata.StringRows.Count; i++)
+			{
+				mdata.StringRows[i] = ExtendStringRow(mdata.StringRows[i], str.Length);
+			}
 		}
 
 		private static void ExpressionToNumeric(IList<int> colInds, IMatrixData mdata){
@@ -414,7 +418,7 @@ namespace PerseusPluginLib.Rearrange{
 		}
 
 		private static double[] ExtendNumericRow(IList<double> numericRow, int add){
-			var result = new double[numericRow.Count + add];
+			double[] result = new double[numericRow.Count + add];
 			for (int i = 0; i < numericRow.Count; i++){
 				result[i] = numericRow[i];
 			}
@@ -425,7 +429,7 @@ namespace PerseusPluginLib.Rearrange{
 		}
 
 		private static string[][] ExtendCategoryRow(IList<string[]> categoryRow, int add){
-			var result = new string[categoryRow.Count + add][];
+			string[][] result = new string[categoryRow.Count + add][];
 			for (int i = 0; i < categoryRow.Count; i++){
 				result[i] = categoryRow[i];
 			}
@@ -435,14 +439,24 @@ namespace PerseusPluginLib.Rearrange{
 			return result;
 		}
 
+		private static string[] ExtendStringRow(IList<string> stringRow, int add)
+		{
+			var result = new string[stringRow.Count + add];
+			for (int i = 0; i < stringRow.Count; i++){
+				result[i] = stringRow[i];
+			}
+			for (int i = stringRow.Count; i < stringRow.Count + add; i++)
+			{
+				result[i] = string.Empty;
+			}
+			return result;
+		}
+
 		private static Parameters GetSubParams(IList<string> values, IList<string> options){
 			return
-				new Parameters(new Parameter[]{
-					new MultiChoiceParam("Columns"){Values = values, Help = "Select here the column whose type should be changed."},
-					new SingleChoiceParam("Target type", 0){
-						Values = options,
-						Help = "The type that these columns will have in the result table."
-					}
+				new Parameters(new MultiChoiceParam("Columns"){Values = values, Help = "Select here the column whose type should be changed."}, new SingleChoiceParam("Target type", 0){
+					Values = options,
+					Help = "The type that these columns will have in the result table."
 				});
 		}
 

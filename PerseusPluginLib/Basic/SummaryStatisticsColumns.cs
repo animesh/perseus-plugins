@@ -82,16 +82,19 @@ namespace PerseusPluginLib.Basic{
 					names.Add(SummaryStatisticsRows.procs[i].Item1);
 				}
 			}
-			float[,] exVals = GetExVals(ex);
+			double[,] exVals = GetExVals(ex);
 			string[] colNames = GetColNames(mdata, cols);
+			var categoryRowNames = mdata.CategoryRowNames;
+			var transformedCategories = TransformCategories(mdata, cols, mdata.ColumnCount);
+			var numericRowNames = mdata.NumericRowNames;
+			var transformedNumeric = TransformNumeric(mdata.NumericRows, cols, mdata.ColumnCount);
+			mdata.Clear();
 			mdata.Name = "Summary";
 			mdata.ColumnNames = new List<string>(names.ToArray());
 			mdata.ColumnDescriptions = new List<string>(names.ToArray());
 			mdata.Values.Set(exVals);
 			mdata.SetAnnotationColumns(new List<string>(new[]{"Columns"}), new List<string[]>(new[]{colNames}),
-				mdata.CategoryRowNames, TransformCategories(mdata, cols, mdata.ColumnCount), mdata.NumericRowNames,
-				TransformNumeric(mdata.NumericRows, cols, mdata.ColumnCount), new List<string>(), new List<double[][]>());
-			mdata.ClearAnnotationRows();
+				categoryRowNames, transformedCategories, numericRowNames, transformedNumeric, new List<string>(), new List<double[][]>());
 		}
 
 		private static List<double[]> TransformNumeric(IEnumerable<double[]> numericRows, IList<int> cols, int n){
@@ -192,11 +195,11 @@ namespace PerseusPluginLib.Basic{
 			}
 		}
 
-		private static float[,] GetExVals(IList<double[]> rows){
-			float[,] result = new float[rows[0].Length, rows.Count];
+		private static double[,] GetExVals(IList<double[]> rows){
+			double[,] result = new double[rows[0].Length, rows.Count];
 			for (int i = 0; i < result.GetLength(1); i++){
 				for (int j = 0; j < result.GetLength(0); j++){
-					result[j, i] = (float) rows[i][j];
+					result[j, i] = rows[i][j];
 				}
 			}
 			return result;

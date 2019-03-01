@@ -84,7 +84,7 @@ namespace PerseusPluginLib.Mods{
 				Dictionary<FeatureType, HashSet<string>> othersStatus = new Dictionary<FeatureType, HashSet<string>>();
 				for (int j = 0; j < protIds[i].Length; j++){
 					string protId = protIds[i][j];
-					int pos = int.Parse(posString[j]);
+					int pos = Parser.Int(posString[j]);
 					if (map.ContainsKey(protId)){
 						MiniProteinAnnotation mpa = map[protId];
 						for (int k = 0; k < mpa.PfamIds.Length; k++){
@@ -94,12 +94,10 @@ namespace PerseusPluginLib.Mods{
 						}
 						foreach (FeatureType featureType in mpa.Features.Keys){
 							foreach (UniprotFeature uf in mpa.Features[featureType]){
-								int begin;
-								int end;
-								if (!int.TryParse(uf.FeatureBegin, out begin)){
+								if (!Parser.TryInt(uf.FeatureBegin, out int begin)) {
 									begin = int.MaxValue;
 								}
-								if (!int.TryParse(uf.FeatureEnd, out end)){
+								if (!Parser.TryInt(uf.FeatureEnd, out int end)){
 									end = int.MinValue;
 								}
 								if (Fits(pos, begin, end)){

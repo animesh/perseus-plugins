@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
+using BaseLibS.Calc;
 using BaseLibS.Graph;
 using BaseLibS.Num;
 using BaseLibS.Param;
-using Calc;
 using PerseusApi.Document;
 using PerseusApi.Generic;
 using PerseusApi.Matrix;
@@ -35,7 +35,7 @@ namespace PerseusPluginLib.Filter{
 			string[] selection = ArrayUtils.Concat(mdata.NumericColumnNames, mdata.ColumnNames);
 			return
 				new Parameters(ArrayUtils.Concat(PerseusUtils.GetNumFilterParams(selection),
-					PerseusPluginUtils.GetFilterModeParam(true)));
+					PerseusPluginUtils.CreateFilterModeParam(true)));
 		}
 
 		public int GetMaxThreads(Parameters parameters){
@@ -44,10 +44,7 @@ namespace PerseusPluginLib.Filter{
 
 		public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables,
 			ref IDocumentData[] documents, ProcessInfo processInfo){
-			string errString;
-			int[] colInds;
-			bool and;
-			Relation[] relations = PerseusUtils.GetRelationsNumFilter(param, out errString, out colInds, out and);
+			Relation[] relations = PerseusUtils.GetRelationsNumFilter(param, out string errString, out int[] colInds, out bool and);
 			if (errString != null){
 				processInfo.ErrString = errString;
 				return;

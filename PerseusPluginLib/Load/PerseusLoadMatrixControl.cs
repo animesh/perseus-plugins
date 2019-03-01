@@ -19,7 +19,7 @@ namespace PerseusPluginLib.Load{
 			selectButton.Click += SelectButton_OnClick;
 			multiListSelectorControl1.Init(items, new[]{"Main", "Numerical", "Categorical", "Text", "Multi-numerical"},
 				new Func<string[], Parameters>[]{
-					s => new Parameters(PerseusUtils.GetNumFilterParams(s)), s => new Parameters(PerseusUtils.GetNumFilterParams(s)),
+					null, null, //s => new Parameters(PerseusUtils.GetNumFilterParams(s)),
 					null, null, null
 				});
 			if (!string.IsNullOrEmpty(filename)){
@@ -62,15 +62,15 @@ namespace PerseusPluginLib.Load{
 		}
 
 		public string Text1{
-			get { return textBox1.Text; }
-			set { textBox1.Text = value; }
+			get => textBox1.Text;
+			set => textBox1.Text = value;
 		}
 
 		private static IEnumerable<int> GetIndices(string s){
 			string[] q = s.Length > 0 ? s.Split(';') : new string[0];
 			int[] result = new int[q.Length];
 			for (int i = 0; i < result.Length; i++){
-				result[i] = int.Parse(q[i]);
+				result[i] = Parser.Int(q[i]);
 			}
 			return result;
 		}

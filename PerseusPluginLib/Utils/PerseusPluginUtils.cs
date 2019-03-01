@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using BaseLibS.Graph;
 using BaseLibS.Graph.Image;
@@ -11,13 +12,43 @@ using PerseusPluginLib.Filter;
 
 namespace PerseusPluginLib.Utils{
 	public static class PerseusPluginUtils{
-		public static SingleChoiceParam GetFilterModeParam(bool column){
+
+        /// <summary>
+        /// Create 'Filter mode' parameter. To upack the value see <see cref="UnpackFilterModeParam"/>.
+        /// </summary>
+        /// <param name="column"></param>
+        /// <returns></returns>
+		public static SingleChoiceParam CreateFilterModeParam(bool column){
 			return new SingleChoiceParam("Filter mode"){
-				Values = new[]{"Reduce matrix", column ? "Add categorical column" : "Add categorical row"}
-			};
+                Values = new[] { "Reduce matrix", column ? "Add categorical column" : "Add categorical row" }
+            };
 		}
 
-		private static SingleChoiceParam GetModeParam1(){
+        /// <summary>
+        /// Filter mode used 
+        /// </summary>
+	    public enum FilterMode
+	    {
+	        Reduce,
+            Mark,
+            //Split
+	    }
+
+        /// <summary>
+        /// Unpack a filter mode param. To create the parameter see <see cref="CreateFilterModeParam"/>.
+        /// </summary>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
+        public static FilterMode UnpackFilterModeParam(Parameters parameters)
+        {
+            return parameters.GetParam<int>("Filter mode").Value == 0 ? FilterMode.Reduce : FilterMode.Mark;
+        }
+
+        /// <summary>
+        /// Reduce 'Mode' param with options for 'Remove matching rows' and 'Keep matching rows'.
+        /// </summary>
+        /// <returns></returns>
+		private static SingleChoiceParam GetReduceModeParam(){
 			return new SingleChoiceParam("Mode"){
 				Values = new[]{"Remove matching rows", "Keep matching rows"},
 				Help =
@@ -26,7 +57,11 @@ namespace PerseusPluginLib.Utils{
 			};
 		}
 
-		private static SingleChoiceParam GetModeParam2(){
+        /// <summary>
+        /// Mark 'Mode' param with options for 'Mark matching rows' and 'Mark non-matching rows'.
+        /// </summary>
+        /// <returns></returns>
+		private static SingleChoiceParam GetMarkModeParam(){
 			return new SingleChoiceParam("Mode"){
 				Values = new[]{"Mark matching rows", "Mark non-matching rows"},
 				Help =
@@ -35,17 +70,21 @@ namespace PerseusPluginLib.Utils{
 			};
 		}
 
+        /// <summary>
+        /// 'Filter mode' parameter with reduce, mark and split options.
+        /// </summary>
+        /// <returns></returns>
 		internal static SingleChoiceWithSubParams GetFilterModeParamNew(){
 			SingleChoiceWithSubParams p = new SingleChoiceWithSubParams("Filter mode"){
 				Values = new[]{"Reduce matrix", "Add categorical column", "Split matrix"},
 				SubParams =
-					new List<Parameters>(new[]{new Parameters(GetModeParam1()), new Parameters(GetModeParam2()), new Parameters()})
+					new List<Parameters>(new[]{new Parameters(GetReduceModeParam()), new Parameters(GetMarkModeParam()), new Parameters()})
 			};
 			return p;
 		}
 
 		public static void FilterRows(IMatrixData mdata, Parameters parameters, int[] rows){
-			bool reduceMatrix = GetReduceMatrix(parameters);
+			bool reduceMatrix = UnpackFilterModeParam(parameters) == FilterMode.Reduce;
 			if (reduceMatrix){
 				mdata.ExtractRows(rows);
 			} else{
@@ -59,12 +98,8 @@ namespace PerseusPluginLib.Utils{
 			}
 		}
 
-		private static bool GetReduceMatrix(Parameters parameters){
-			return parameters.GetParam<int>("Filter mode").Value == 0;
-		}
-
 		public static void FilterColumns(IMatrixData mdata, Parameters parameters, int[] cols){
-			bool reduceMatrix = GetReduceMatrix(parameters);
+			bool reduceMatrix = UnpackFilterModeParam(parameters) == FilterMode.Reduce;
 			if (reduceMatrix){
 				mdata.ExtractColumns(cols);
 			} else{
@@ -204,12 +239,14 @@ namespace PerseusPluginLib.Utils{
 			return count >= minValids;
 		}
 
-		public static Parameter GetMinValuesParam(bool rows){
+		public static Parameter GetMinValuesParam(IMatrixData mdata, bool rows)
+		{
+		    var maxValue = rows ? mdata.ColumnCount : mdata.RowCount;
 			return new SingleChoiceWithSubParams("Min. valids"){
 				Values = new[]{"Number", "Percentage"},
 				SubParams =
 					new[]{
-						new Parameters(new IntParam("Min. number of values", 3){
+						new Parameters(new IntParam("Min. number of values", Math.Min(maxValue, 3)){
 							Help =
 								"If a " + (rows ? "row" : "column") +
 								" has less than the specified number of valid values it will be discarded in the output."
@@ -257,25 +294,6 @@ namespace PerseusPluginLib.Utils{
 			return y;
 		}
 
-		public static float[] CollapseNumCol(float[] numCol, int[][] collapse){
-			float[] result = new float[collapse.Length];
-			for (int i = 0; i < collapse.Length; i++){
-				result[i] = CollapseNumCol(numCol, collapse[i]);
-			}
-			return result;
-		}
-
-		private static float CollapseNumCol(IList<float> numCol, IEnumerable<int> collapse){
-			List<float> all = new List<float>();
-			foreach (int x in collapse){
-				if (!float.IsNaN(numCol[x]) && !float.IsInfinity(numCol[x])){
-					all.Add(numCol[x]);
-				}
-			}
-			float y = ArrayUtils.Median(all.ToArray());
-			return y;
-		}
-
 		public static double[] CollapseNumCol(double[] numCol, int[][] collapse){
 			double[] result = new double[collapse.Length];
 			for (int i = 0; i < collapse.Length; i++){
@@ -295,6 +313,12 @@ namespace PerseusPluginLib.Utils{
 			return y;
 		}
 
+        /// <summary>
+        /// Returns an array of main column indices for each of the group names.
+        /// </summary>
+        /// <param name="groupCol"></param>
+        /// <param name="groupNames"></param>
+        /// <returns></returns>
 		public static int[][] GetMainColIndices(IList<string[]> groupCol, string[] groupNames){
 			int[][] colInds = new int[groupNames.Length][];
 			for (int i = 0; i < colInds.Length; i++){
@@ -303,7 +327,13 @@ namespace PerseusPluginLib.Utils{
 			return colInds;
 		}
 
-		private static int[] GetMainColIndices(IList<string[]> groupCol, string groupName){
+        /// <summary>
+        /// Returns the main column indices for the passed-in group.
+        /// </summary>
+        /// <param name="groupCol"></param>
+        /// <param name="groupName"></param>
+        /// <returns></returns>
+		public static int[] GetMainColIndices(IList<string[]> groupCol, string groupName){
 			List<int> result = new List<int>();
 			for (int i = 0; i < groupCol.Count; i++){
 				string[] w = groupCol[i];
@@ -433,28 +463,64 @@ namespace PerseusPluginLib.Utils{
 			return result;
 		}
 
-		public static string[][] CalcBenjaminiHochbergFdr(double[] pvals, double threshold, int n, out double[] fdrs){
-			fdrs = new double[pvals.Length];
-			int[] o = ArrayUtils.Order(pvals);
-			int lastind = -1;
-			for (int i = 0; i < n; i++){
-				double fdr = Math.Min(1, pvals[o[i]]*n/(1.0 + i));
-				fdrs[o[i]] = fdr;
-				if (fdr <= threshold){
-					lastind = i;
-				}
+
+        /// <summary>
+        /// Calculate FDR with Benjamini-Hochberg method.
+        /// </summary>
+        /// <param name="pvaluesUnsorted"></param>
+        /// <param name="threshold"></param>
+        /// <param name="fdrsUnsorted"></param>
+        /// <returns></returns>
+		public static string[][] CalcBenjaminiHochbergFdr(double[] pvaluesUnsorted, double threshold, out double[] fdrsUnsorted){
+			fdrsUnsorted = new double[pvaluesUnsorted.Length];
+		    if (fdrsUnsorted.Length < 1)
+		    {
+                return new string[0][];
+		    }
+			int[] order = ArrayUtils.Order(pvaluesUnsorted);
+		    var sortedValid = order.Select(o => pvaluesUnsorted[o]).Where(p => !double.IsNaN(p)).ToArray();
+            var n = sortedValid.Length;
+            var fdrsRaw = new double[n];
+		    for (int i = 0; i < n; i++)
+            {
+                fdrsRaw[i] = sortedValid[i]*n/(1.0 + i);
 			}
-			string[][] result = new string[pvals.Length][];
-			for (int i = 0; i < result.Length; i++){
-				result[i] = new string[0];
-			}
-			for (int i = 0; i <= lastind; i++){
-				result[o[i]] = new[]{"+"};
+            var fdrs = new double[n];
+		    double previousFdr = fdrsRaw[n - 1];
+            fdrs[n-1] = previousFdr;
+		    for (int i = n - 2; i > -1; i--)
+		    {
+		        var currentFdr = fdrsRaw[i];
+		        if (previousFdr > currentFdr)
+		        {
+		            previousFdr = currentFdr;
+		        }
+                fdrs[i] = previousFdr;
+		    }
+	        int validIndex = 0;
+		    foreach (var unsortedIndex in order)
+		    {
+		        if (!double.IsNaN(pvaluesUnsorted[unsortedIndex]))
+		        {
+		            fdrsUnsorted[unsortedIndex] = fdrs[validIndex];
+		            validIndex++;
+		        }
+		        else
+		        {
+		            fdrsUnsorted[unsortedIndex] = double.NaN;
+		        }
+		    }
+			string[][] result = new string[pvaluesUnsorted.Length][];
+		    string[] notSignificant = new string[0];
+		    string[] significant = {"+"};
+			for (int i = 0; i < result.Length; i++)
+			{
+			    result[i] = fdrsUnsorted[i] < threshold ? significant : notSignificant;
 			}
 			return result;
 		}
 
-		public static Bitmap2 GetImage(string file){
+	    public static Bitmap2 GetImage(string file){
 			Assembly thisExe = Assembly.GetExecutingAssembly();
 			Stream file1 = thisExe.GetManifestResourceStream("PerseusPluginLib.img." + file);
 			if (file1 == null){

@@ -70,7 +70,7 @@ namespace PerseusPluginLib.Norm{
 			}
 			double med = summarize(vals.ToArray());
 			for (int j = 0; j < data.ColumnCount; j++){
-				data.Values.Set(i, j, data.Values.Get(i, j)/(float) med);
+				data.Values.Set(i, j, data.Values.Get(i, j)/med);
 			}
 		}
 
@@ -84,21 +84,18 @@ namespace PerseusPluginLib.Norm{
 			}
 			double med = summarize(vals.ToArray());
 			for (int i = 0; i < data.RowCount; i++){
-				data.Values.Set(i, j, data.Values.Get(i, j)/(float) med);
+				data.Values.Set(i, j, data.Values.Get(i, j)/med);
 			}
 		}
 
 		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
 			return
-				new Parameters(new Parameter[]{
-					new SingleChoiceParam("Matrix access"){
-						Values = new[]{"Rows", "Columns"},
-						Help = "Specifies if the analysis is performed on the rows or the columns of the matrix."
-					},
-					new SingleChoiceParam("Divide by what"){
-						Values = new[]{"Sum", "Mean", "Median", "Most frequent value", "Tukey's biweight"},
-						Value = 2
-					}
+				new Parameters(new SingleChoiceParam("Matrix access"){
+					Values = new[]{"Rows", "Columns"},
+					Help = "Specifies if the analysis is performed on the rows or the columns of the matrix."
+				}, new SingleChoiceParam("Divide by what"){
+					Values = new[]{"Sum", "Mean", "Median", "Most frequent value", "Tukey's biweight"},
+					Value = 2
 				});
 		}
 	}

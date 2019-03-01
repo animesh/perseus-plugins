@@ -16,7 +16,7 @@ namespace PerseusPluginLib.Norm{
 				"The first, second and third quartile (q1, q2, q3) are calculated from the " +
 				"distribution of all values. The second quartile (which is the median) is subtracted from each value " +
 				"to center the distribution. Then we divide by the width in an asymmetric way. All values that are " +
-				"positive after subtraction of the median are divided by q3 – q2 while all negative values are divided by q2 – q1.";
+				"positive after subtraction of the median are divided by q3 - q2 while all negative values are divided by q2 - q1.";
 
 		public string HelpOutput => "";
 		public string[] HelpSupplTables => new string[0];
@@ -41,14 +41,14 @@ namespace PerseusPluginLib.Norm{
 			double[] dp = new double[mdata.ColumnCount];
 			double[] med = new double[mdata.ColumnCount];
 			for (int i = 0; i < mdata.ColumnCount; i++){
-				List<float> v = new List<float>();
+				List<double> v = new List<double>();
 				foreach (double f in mdata.Values.GetColumn(i)){
 					if (!double.IsNaN(f) && !double.IsInfinity(f)){
-						v.Add((float) f);
+						v.Add(f);
 					}
 				}
-				float[] d = v.ToArray();
-				float[] q = ArrayUtils.Quantiles(d, new[]{0.25, 0.5, 0.75});
+				double[] d = v.ToArray();
+				double[] q = ArrayUtils.Quantiles(d, new[]{0.25, 0.5, 0.75});
 				for (int j = 0; j < mdata.RowCount; j++){
 					mdata.Values.Set(j, i, mdata.Values.Get(j, i) - q[1]);
 				}
@@ -62,9 +62,9 @@ namespace PerseusPluginLib.Norm{
 				for (int j = 0; j < mdata.RowCount; j++){
 					double x = mdata.Values.Get(j, i);
 					if (x < 0){
-						mdata.Values.Set(j, i, (float) (x*adm/dm[i]));
+						mdata.Values.Set(j, i, (x*adm/dm[i]));
 					} else{
-						mdata.Values.Set(j, i, (float) (x*adp/dp[i]));
+						mdata.Values.Set(j, i, (x*adp/dp[i]));
 					}
 				}
 			}

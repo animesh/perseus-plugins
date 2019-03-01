@@ -7,21 +7,22 @@ using BaseLibS.Param;
 using BaseLibS.Util;
 
 namespace PerseusPluginLib.Load{
-    /// <summary>
-    /// Parameter value format: 8 item string array
-    /// [0] file name: string
-    /// [1] column names: string
-    /// [2-6] main, num, cat, text, multi-numeric: integers separated by ';'
-    /// [7] shorten column names: bool
-    /// </summary>
+	/// <summary>
+	/// Parameter value format: 8 item string array
+	/// [0] file name: string
+	/// [1] column names: string
+	/// [2-6] main, num, cat, text, multi-numeric: integers separated by ';'
+	/// [7] shorten column names: bool
+	/// </summary>
 	[Serializable]
 	public class PerseusLoadMatrixParam : Parameter<string[]>{
 		public string Filter { get; set; }
 		[NonSerialized] private PerseusLoadMatrixControl control;
-        /// <summary>
-        /// Puts thresholds on parameters that are used for filtering rows on upload.
-        /// Allows for the use of very large matrices as input by only partially loading them into memory
-        /// </summary>
+
+		/// <summary>
+		/// Puts thresholds on parameters that are used for filtering rows on upload.
+		/// Allows for the use of very large matrices as input by only partially loading them into memory
+		/// </summary>
 		public IList<Parameters[]> FilterParameterValues { get; set; }
 
 		/// <summary>
@@ -37,12 +38,12 @@ namespace PerseusPluginLib.Load{
 				Default[i] = "";
 			}
 			Filter = null;
-		    FilterParameterValues = new List<Parameters[]>(new Parameters[6][]);
+			FilterParameterValues = new List<Parameters[]>(new Parameters[6][]);
 		}
 
 		public override string StringValue{
-			get { return StringUtils.Concat("\n", Value); }
-			set { Value = value.Split('\n'); }
+			get => StringUtils.Concat("\n", Value);
+			set => Value = value.Split('\n');
 		}
 
 		public override bool IsDropTarget => true;
@@ -88,7 +89,7 @@ namespace PerseusPluginLib.Load{
 			string[] q = x.Length > 0 ? x.Split(';') : new string[0];
 			int[] result = new int[q.Length];
 			for (int i1 = 0; i1 < q.Length; i1++){
-				result[i1] = int.Parse(q[i1]);
+				result[i1] = Parser.Int(q[i1]);
 			}
 			return result;
 		}
@@ -102,34 +103,32 @@ namespace PerseusPluginLib.Load{
 		public Parameters[] MainFilterParameters => FilterParameterValues[0] ?? new Parameters[0];
 		public Parameters[] NumericalFilterParameters => FilterParameterValues[1] ?? new Parameters[0];
 
-        public override void WriteXml(XmlWriter writer)
-        {
-            WriteBasicAttributes(writer);
-            writer.WriteStartElement("Value");
-            writer.WriteString(StringValue);
-            writer.WriteEndElement();
-            var serializer = new XmlSerializer(typeof(Parameters[]));
-            writer.WriteStartElement("MainFilterParameters");
-            serializer.Serialize(writer, MainFilterParameters);
-            writer.WriteEndElement();
-            writer.WriteStartElement("NumericalFilterParameters");
-            serializer.Serialize(writer, NumericalFilterParameters);
-            writer.WriteEndElement();
-        }
+		public override void WriteXml(XmlWriter writer){
+			WriteBasicAttributes(writer);
+			writer.WriteStartElement("Value");
+			writer.WriteString(StringValue);
+			writer.WriteEndElement();
+			XmlSerializer serializer = new XmlSerializer(typeof (Parameters[]));
+			writer.WriteStartElement("MainFilterParameters");
+			serializer.Serialize(writer, MainFilterParameters);
+			writer.WriteEndElement();
+			writer.WriteStartElement("NumericalFilterParameters");
+			serializer.Serialize(writer, NumericalFilterParameters);
+			writer.WriteEndElement();
+		}
 
-        public override void ReadXml(XmlReader reader)
-        {
-            ReadBasicAttributes(reader);
-            reader.ReadStartElement();
-            StringValue = reader.ReadElementContentAsString("Value", "");
-            var serializer = new XmlSerializer(typeof(Parameters[]));
-            reader.ReadStartElement("MainFilterParameters");
-            FilterParameterValues[0] = (Parameters[]) serializer.Deserialize(reader);
-            reader.ReadEndElement();
-            reader.ReadStartElement("NumericalFilterParameters");
-            FilterParameterValues[1] = (Parameters[]) serializer.Deserialize(reader);
-            reader.ReadEndElement();
-            reader.ReadEndElement();
-        }
-    }
+		public override void ReadXml(XmlReader reader){
+			ReadBasicAttributes(reader);
+			reader.ReadStartElement();
+			StringValue = reader.ReadElementContentAsString("Value", "");
+			XmlSerializer serializer = new XmlSerializer(typeof (Parameters[]));
+			reader.ReadStartElement("MainFilterParameters");
+			FilterParameterValues[0] = (Parameters[]) serializer.Deserialize(reader);
+			reader.ReadEndElement();
+			reader.ReadStartElement("NumericalFilterParameters");
+			FilterParameterValues[1] = (Parameters[]) serializer.Deserialize(reader);
+			reader.ReadEndElement();
+			reader.ReadEndElement();
+		}
+	}
 }

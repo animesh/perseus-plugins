@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using BaseLibS.Graph;
 using BaseLibS.Param;
 using BaseLibS.Parse;
@@ -27,14 +28,14 @@ namespace PerseusPluginLib.Load{
 		public string Description => "Load all lines from a text file and put them into a single text column or split them into " +
 									"multiple text columns.";
 
+	    private static readonly (char separator, string name)[] Separators = {('\t', "Tab"), (',', "Comma"), (' ', "Space")};
 		public Parameters GetParameters(ref string errString){
 			return
 				new Parameters(new FileParam("File"){
-					Filter =
-						"Text (Tab delimited) (*.txt)|*.txt;*txt.gz|CSV (Comma delimited) (*.csv)|*.csv;*.csv.gz|All files (*.*)|*.*",
+					Filter = "All files (*.*)|*.*",
 					Help = "Please specify here the name of the file to be uploaded including its full path."
 				}, new BoolWithSubParams("Split into columns", false){
-					SubParamsTrue = new Parameters(new SingleChoiceParam("Separator"){Values = new[]{"Tab", "Comma"}})
+					SubParamsTrue = new Parameters(new SingleChoiceParam("Separator"){Values = Separators.Select(sep => sep.name).ToArray()})
 				});
 		}
 
@@ -44,8 +45,8 @@ namespace PerseusPluginLib.Load{
 				ParameterWithSubParams<bool> bsp = parameters.GetParamWithSubParams<bool>("Split into columns");
 			bool split = bsp.Value;
 			if (split){
-				bool csv = bsp.GetSubParameters().GetParam<int>("Separator").Value == 1;
-				LoadSplit(mdata, filename, csv);
+				int sepIndex = bsp.GetSubParameters().GetParam<int>("Separator").Value;
+				LoadSplit(mdata, filename, Separators[sepIndex].separator);
 			} else{
 				LoadNoSplit(mdata, filename);
 			}
@@ -67,14 +68,13 @@ namespace PerseusPluginLib.Load{
 			mdata.Origin = filename;
 		}
 
-		private static void LoadSplit(IMatrixData mdata, string filename, bool csv){
-			char separator = csv ? ',' : '\t';
+		private static void LoadSplit(IMatrixData mdata, string filename, char separator){
 			string[] colNames = TabSep.GetColumnNames(filename, 0, PerseusUtils.commentPrefix,
 				PerseusUtils.commentPrefixExceptions, null, separator);
 			string[][] cols = TabSep.GetColumns(colNames, filename, 0, PerseusUtils.commentPrefix,
 				PerseusUtils.commentPrefixExceptions, separator);
-			int nrows = TabSep.GetRowCount(filename);
-			mdata.Values.Init(nrows,0);
+			var rowCount = (cols.FirstOrDefault() ?? new string[0]).Length;
+			mdata.Values.Init(rowCount,0);
 			mdata.SetAnnotationColumns(new List<string>(colNames), new List<string>(colNames), new List<string[]>(cols), new List<string>(),
 				new List<string>(), new List<string[][]>(), new List<string>(), new List<string>(), new List<double[]>(),
 				new List<string>(), new List<string>(), new List<double[][]>());

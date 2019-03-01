@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using BaseLibS.Graph;
 using BaseLibS.Param;
@@ -32,19 +32,71 @@ namespace PerseusPluginLib.Rearrange{
 			return 1;
 		}
 
-		public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables,
-			ref IDocumentData[] documents, ProcessInfo processInfo){
-			var vals = param.GetParam<Tuple<Regex, string>>("Regex").Value;
-		    var pattern = vals.Item1;
+        public void ProcessData(IMatrixData mdata, Parameters param, ref IMatrixData[] supplTables,
+            ref IDocumentData[] documents, ProcessInfo processInfo)
+        {
+            var parameter = param.GetParamWithSubParams<int>("Column type");
+			Tuple<Regex, string> vals = parameter.GetSubParameters().GetParam<Tuple<Regex, string>>("Regex").Value;
+		    Regex pattern = vals.Item1;
 		    string replacementStr = vals.Item2;
-			for (int i = 0; i < mdata.ColumnCount; i++){
-				mdata.ColumnNames[i] = pattern.Replace(mdata.ColumnNames[i], replacementStr);
-			}
+            switch (parameter.Value)
+            {
+                case 0:
+                    for (int i = 0; i < mdata.ColumnCount; i++)
+                    {
+                        mdata.ColumnNames[i] = pattern.Replace(mdata.ColumnNames[i], replacementStr);
+                    }
+                    break;
+                case 1:
+                    for (int i = 0; i < mdata.StringColumnCount; i++)
+                    {
+                        mdata.StringColumnNames[i] = pattern.Replace(mdata.StringColumnNames[i], replacementStr);
+                    }
+                    break;
+                case 2:
+                    for (int i = 0; i < mdata.NumericColumnCount; i++)
+                    {
+                        mdata.NumericColumnNames[i] = pattern.Replace(mdata.NumericColumnNames[i], replacementStr);
+                    }
+                    break;
+                case 3:
+                    for (int i = 0; i < mdata.CategoryColumnCount; i++)
+                    {
+                        mdata.CategoryColumnNames[i] = pattern.Replace(mdata.CategoryColumnNames[i], replacementStr);
+                    }
+                    break;
+                case 4:
+                    for (int i = 0; i < mdata.CategoryColumnCount; i++)
+                    {
+                        mdata.MultiNumericColumnNames[i] = pattern.Replace(mdata.MultiNumericColumnNames[i], replacementStr);
+                    }
+                    break;
+            }
+	        if (mdata.ColumnNames.Count > mdata.ColumnNames.Distinct().Count()
+	            || mdata.StringColumnNames.Count > mdata.StringColumnNames.Distinct().Count()
+	            || mdata.NumericColumnNames.Count > mdata.NumericColumnNames.Distinct().Count()
+	            || mdata.CategoryColumnNames.Count > mdata.CategoryColumnNames.Distinct().Count()
+	            || mdata.MultiNumericColumnNames.Count > mdata.MultiNumericColumnNames.Distinct().Count())
+	        {
+		        processInfo.ErrString = "Column naming not unique. Please change the pattern accordingly.";
+	        }
 		}
 
-		public Parameters GetParameters(IMatrixData mdata, ref string errorString){
-			return
-				new Parameters(new RegexReplaceParam("Regex", new Regex("Column (.*)"), "$1", mdata.ColumnNames));
-		}
+        public Parameters GetParameters(IMatrixData mdata, ref string errorString)
+        {
+            var parameter = new SingleChoiceWithSubParams("Column type")
+            {
+                Values = new [] {"Main", "Text", "Numeric", "Category", "Multi numeric"},
+                SubParams = new []
+                {
+                new RegexReplaceParam("Regex", new Regex("Column (.*)"), "$1", mdata.ColumnNames),
+                new RegexReplaceParam("Regex", new Regex("Column (.*)"), "$1", mdata.StringColumnNames),
+                new RegexReplaceParam("Regex", new Regex("Column (.*)"), "$1", mdata.NumericColumnNames),
+                new RegexReplaceParam("Regex", new Regex("Column (.*)"), "$1", mdata.CategoryColumnNames),
+                new RegexReplaceParam("Regex", new Regex("Column (.*)"), "$1", mdata.MultiNumericColumnNames),
+                }.Select(param => new Parameters(param)).ToArray()
+            };
+            return new Parameters(parameter);
+        }
 	}
 }

@@ -1,39 +1,53 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using BaseLibS.Param;
+using Moq;
+using NUnit.Framework;
 using PerseusApi.Document;
+using PerseusApi.Generic;
 using PerseusApi.Matrix;
 using PerseusPluginLib.Rearrange;
 
 namespace PerseusPluginLib.Test.Rearrange{
-	[TestClass]
+	[TestFixture]
 	public class RenameColumnsRegexpTest{
 		/// <summary>
 		/// Test the wiki example
 		/// </summary>
-		[TestMethod]
+		[Test]
 		public void TestWikiExample(){
-			var colnames = new List<string>(){"column 1", "column 2", "column 3"};
-			Rename(colnames, "column (.*)", "$1");
+			List<string> colnames = new List<string>(){"column 1", "column 2", "column 3"};
+			var error = Rename(colnames, "column (.*)", "$1");
+			Assert.IsTrue(string.IsNullOrEmpty(error));
 			CollectionAssert.AreEqual(new List<string>{"1", "2", "3"}, colnames);
 		}
 
 		/// <summary>
 		/// Test switching order
 		/// </summary>
-		[TestMethod]
+		[Test]
 		public void TestSwitchOrder(){
-			var colnames = new List<string>(){"column 1", "column 2", "column 3"};
-			Rename(colnames, "(?<first>.*) (?<second>.*)", "${second} ${first}");
+			List<string> colnames = new List<string>(){"column 1", "column 2", "column 3"};
+			var error = Rename(colnames, "(?<first>.*) (?<second>.*)", "${second} ${first}");
+			Assert.IsTrue(string.IsNullOrEmpty(error));
 			CollectionAssert.AreEqual(new List<string>{"1 column", "2 column", "3 column"}, colnames);
 		}
 
-		[TestMethod]
+		[Test]
 		public void TestReplacement(){
-			var colnames = new List<string>(){"column 1", "column 2", "column 3"};
-			Rename(colnames, "(column) (.*)", "$1SPACE$2");
+			List<string> colnames = new List<string>(){"column 1", "column 2", "column 3"};
+			var error = Rename(colnames, "(column) (.*)", "$1SPACE$2");
+			Assert.IsTrue(string.IsNullOrEmpty(error));
 			CollectionAssert.AreEqual(new List<string>{"columnSPACE1", "columnSPACE2", "columnSPACE3"}, colnames);
+		}
+
+		[Test]
+		public void TestDuplicates(){
+			List<string> colnames = new List<string>(){"column 1", "column 2", "column 3"};
+			var error = Rename(colnames, "(column) (.*)", "$1");
+			Assert.IsFalse(string.IsNullOrEmpty(error));
+			CollectionAssert.AreEqual(new List<string>{"column", "column", "column"}, colnames);
 		}
 
 		/// <summary>
@@ -42,17 +56,28 @@ namespace PerseusPluginLib.Test.Rearrange{
 		/// <param name="colnames"></param>
 		/// <param name="pattern"></param>
 		/// <param name="replacement"></param>
-		private static void Rename(List<string> colnames, string pattern, string replacement){
-			var renamer = new RenameColumnsRegexp();
-			var matrix = new Moq.Mock<IMatrixData>();
+		private static string Rename(List<string> colnames, string pattern, string replacement){
+			RenameColumnsRegexp renamer = new RenameColumnsRegexp();
+			Mock<IMatrixData> matrix = new Mock<IMatrixData>();
 			matrix.Setup(m => m.ColumnCount).Returns(colnames.Count);
 			matrix.Setup(m => m.ColumnNames).Returns(colnames);
+			matrix.Setup(m => m.StringColumnNames).Returns(new List<string>());
+			matrix.Setup(m => m.StringColumnCount).Returns(0);
+			matrix.Setup(m => m.NumericColumnNames).Returns(new List<string>());
+			matrix.Setup(m => m.NumericColumnCount).Returns(0);
+			matrix.Setup(m => m.CategoryColumnNames).Returns(new List<string>());
+			matrix.Setup(m => m.CategoryColumnCount).Returns(0);
+			matrix.Setup(m => m.MultiNumericColumnNames).Returns(new List<string>());
+			matrix.Setup(m => m.MultiNumericColumnCount).Returns(0);
 			string err = "";
-			var param = renamer.GetParameters(matrix.Object, ref err);
-			param.GetParam<Tuple<Regex, string>>("Regex").Value = Tuple.Create(new Regex(pattern), replacement);
+			Parameters param = renamer.GetParameters(matrix.Object, ref err);
+            param.GetParamWithSubParams<int>("Column type").GetSubParameters()
+                .GetParam<Tuple<Regex, string>>("Regex").Value = Tuple.Create(new Regex(pattern), replacement);
 			IMatrixData[] supplTables = null;
 			IDocumentData[] documents = null;
-			renamer.ProcessData(matrix.Object, param, ref supplTables, ref documents, null);
+			var pInfo = new ProcessInfo(new Settings(), s => { }, i => { }, 1);
+			renamer.ProcessData(matrix.Object, param, ref supplTables, ref documents, pInfo);
+			return pInfo.ErrString;
 		}
 	}
 }

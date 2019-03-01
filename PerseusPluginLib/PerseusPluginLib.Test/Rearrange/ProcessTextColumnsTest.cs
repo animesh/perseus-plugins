@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using BaseLibS.Param;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 using PerseusApi.Document;
 using PerseusApi.Matrix;
-using PerseusLibS;
+using PerseusApi.Utils;
 using PerseusPluginLib.Rearrange;
 
 namespace PerseusPluginLib.Test.Rearrange{
@@ -13,12 +13,12 @@ namespace PerseusPluginLib.Test.Rearrange{
 	/// of the mechanics, so that the test methods only have to specify the regex, the 
 	/// input data, and the expected output.
 	/// </summary>
-	[TestClass]
+	[TestFixture]
 	public class ProcessTextColumnsTest{
 		/// <summary>
 		/// The regex "^([^;]+)" should output everything before the first semicolon.
 		/// </summary>
-		[TestMethod] public void TestOnlyToFirstSemicolon(){
+		[Test] public void TestOnlyToFirstSemicolon(){
 			const string regexStr = "^([^;]+)";
 			string[] stringsInit = {"just one item", "first item; second item"};
 			string[] stringsExpect = {"just one item", "first item"};
@@ -28,7 +28,7 @@ namespace PerseusPluginLib.Test.Rearrange{
 		/// <summary>
 		/// The regex "B *= *([^,; ]+)" should output the value given to B.
 		/// </summary>
-		[TestMethod] public void TestAssignmentWithEqualSign(){
+		[Test] public void TestAssignmentWithEqualSign(){
 			const string regexStr = "B *= *([^,; ]+)";
 			string[] stringsInit = new[]{"A = 123, B = 456", "A=123; B=456"};
 			string[] stringsExpect = new[]{"456", "456"};
@@ -38,10 +38,10 @@ namespace PerseusPluginLib.Test.Rearrange{
 		/// <summary>
 		/// The regex "B *= *([^,; ]+)" should output the value given to B.
 		/// </summary>
-		[TestMethod] public void TestSeparatedBySemicolons(){
+		[Test] public void TestSeparatedBySemicolons(){
 			const string regexStr = "B *= *([^,; ]+)";
 			string[] stringsInit = new[]{"A = 123, B = 456", "A=123; B=456", "B=123; B=456"};
-			string[] stringsExpect = new[]{"456", ";456", "123;456"};
+			string[] stringsExpect = new[]{"456", "456", "123"};
 			TestRegex(regexStr, stringsInit, stringsExpect);
 		}
 
@@ -57,22 +57,24 @@ namespace PerseusPluginLib.Test.Rearrange{
 			List<string> stringColumnNames = new List<string>{"Column Name"};
 			List<string[]> stringColumnsInit = new List<string[]>{stringsInit};
 			List<string[]> stringColumnsExpect = new List<string[]>{stringsExpect};
-			Parameters param =
-				new Parameters(new Parameter[]{
-					new MultiChoiceParam("Columns", new[]{0}){Values = stringColumnNames},
-					new StringParam("Regular expression", regexStr), new BoolParam("Keep original columns", false),
-					new BoolParam("Strings separated by semicolons are independent", false)
-				});
-			IMatrixData mdata = PerseusFactory.CreateNewMatrixData();
+			ProcessTextColumns ptc = new ProcessTextColumns();
+			IMatrixData mdata = PerseusFactory.CreateMatrixData();
 			mdata.Clear();
 			mdata.Name = name;
 			mdata.SetAnnotationColumns(stringColumnNames, stringColumnsInit, mdata.CategoryColumnNames, new List<string[][]>(),
 				mdata.NumericColumnNames, mdata.NumericColumns, mdata.MultiNumericColumnNames, mdata.MultiNumericColumns);
-			var ptc = new ProcessTextColumns();
+		    string errorStr = string.Empty;
+		    Parameters param = ptc.GetParameters(mdata, ref errorStr);
+		    param.GetParam<int[]>("Columns").Value = new[] {0};
+		    param.GetParam<string>("Regular expression").Value = regexStr;
+	        param.GetParam<bool>("Keep original columns").Value = false;
+            param.GetParam<bool>("Strings separated by semicolons are independent").Value = false;
 			ptc.ProcessData(mdata, param, ref supplTables, ref documents, null);
-			const bool ignoreCase = false;
-			for (int rowInd = 0; rowInd < stringColumnsInit[0].Length; rowInd++){
-				Assert.AreEqual(mdata.StringColumns[0][rowInd], stringColumnsExpect[0][rowInd], ignoreCase);
+			for (int rowInd = 0; rowInd < stringColumnsInit[0].Length; rowInd++)
+			{
+			    var actual = mdata.StringColumns[0][rowInd];
+			    var expected = stringColumnsExpect[0][rowInd];
+                StringAssert.AreEqualIgnoringCase(expected, actual);
 			}
 		}
 	}

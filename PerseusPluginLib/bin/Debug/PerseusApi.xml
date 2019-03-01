@@ -131,6 +131,26 @@
             For example, this could be <code>IMatrixData</code>.
             </summary>
         </member>
+        <member name="P:PerseusApi.Generic.IData.Id">
+            <summary>
+            This the id of the data object.
+            </summary>
+        </member>
+        <member name="P:PerseusApi.Generic.IData.DataType">
+            <summary>
+            This is the DataType of the object.
+            </summary>
+        </member>
+        <member name="P:PerseusApi.Generic.IData.WorkflowImage">
+            <summary>
+            Visual representation of the data in the workflow.
+            </summary>
+        </member>
+        <member name="P:PerseusApi.Generic.IData.TypeName">
+            <summary>
+            Name of the DataType.
+            </summary>
+        </member>
         <member name="P:PerseusApi.Generic.IData.Name">
             <summary>
             This is the name that e.g. appears in drop-down menus.
@@ -165,12 +185,14 @@
         <member name="M:PerseusApi.Generic.IData.CreateNewInstance">
             <summary>
             Creates an instance of the same data type.
+            Obsolete: Use <see cref="T:PerseusApi.Utils.PerseusFactory"/> instead.
             </summary>
             <returns>New instance.</returns>
         </member>
         <member name="M:PerseusApi.Generic.IData.CreateNewInstance(PerseusApi.Generic.DataType)">
             <summary>
             Creates an instance of the specified data type.
+            Obsolete: Use <see cref="T:PerseusApi.Utils.PerseusFactory"/> instead.
             </summary>
             <returns>New instance.</returns>
         </member>
@@ -178,6 +200,13 @@
             <summary>
             Clears up all data from this instance.
             </summary>
+        </member>
+        <member name="M:PerseusApi.Generic.IData.IsConsistent(System.String@)">
+            <summary>
+            Check if the data structue is consistent.
+            </summary>
+            <param name="errString"></param>
+            <returns></returns>
         </member>
         <member name="M:PerseusApi.Generic.IDataWithAnnotationColumns.GetCategoryColumnAt(System.Int32)">
             <summary>
@@ -363,6 +392,480 @@
             <param name="errString">Set this to a value != null if an error occured. The error string will be displayed to the user.</param>
             <returns>The set of parameters.</returns>
         </member>
+        <member name="T:PerseusApi.Network.IEdge">
+            <summary>
+            Network edge connecting source and target
+            </summary>
+        </member>
+        <member name="P:PerseusApi.Network.IEdge.Source">
+            <summary>
+            Edge source
+            </summary>
+        </member>
+        <member name="P:PerseusApi.Network.IEdge.Target">
+            <summary>
+            Edge target
+            </summary>
+        </member>
+        <member name="T:PerseusApi.Network.IGraph">
+            <summary>
+            Node-link graph
+            </summary>
+        </member>
+        <member name="P:PerseusApi.Network.IGraph.Edges">
+            <summary>
+            Edges
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Network.IGraph.AddNode">
+            <summary>
+            Add node and return reference.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:PerseusApi.Network.IGraph.AddEdge(PerseusApi.Network.INode,PerseusApi.Network.INode)">
+            <summary>
+            Add edge between nodes and return reference.
+            </summary>
+            <param name="source"></param>
+            <param name="target"></param>
+            <returns></returns>
+        </member>
+        <member name="P:PerseusApi.Network.IGraph.NumberOfNodes">
+            <summary>
+            Number of nodes in the graph
+            </summary>
+        </member>
+        <member name="P:PerseusApi.Network.IGraph.NumberOfEdges">
+            <summary>
+            Number of edges in the graph
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Network.IGraph.RemoveNodes(PerseusApi.Network.INode[])">
+            <summary>
+            Remove the nodes from the graph. Removes dangling edges.
+            </summary>
+            <param name="nodes"></param>
+        </member>
+        <member name="M:PerseusApi.Network.IGraph.RemoveNodes(System.Collections.Generic.IEnumerable{PerseusApi.Network.INode})">
+            <summary>
+            Remove the nodes from the graph. Removes dangling edges.
+            </summary>
+            <param name="nodes"></param>
+        </member>
+        <member name="M:PerseusApi.Network.IGraph.RemoveNodes(System.Collections.Generic.IEnumerable{PerseusApi.Network.INode},System.Collections.Generic.HashSet{PerseusApi.Network.IEdge}@,System.Collections.Generic.HashSet{PerseusApi.Network.INode}@)">
+            <summary>
+            Remove the nodes from the graph. Removes dangling edges.
+            </summary>
+            <param name="nodes"></param>
+            <param name="danglingEdges">dangling edges that were removed</param>
+            <param name="orphans">nodes orphaned (no remaining edges) after removing dangling edges</param>
+        </member>
+        <member name="M:PerseusApi.Network.IGraph.RemoveEdges(PerseusApi.Network.IEdge[])">
+            <summary>
+            Remove edges from the graph.
+            </summary>
+            <param name="edges"></param>
+        </member>
+        <member name="M:PerseusApi.Network.IGraph.RemoveEdges(System.Collections.Generic.IEnumerable{PerseusApi.Network.IEdge},System.Collections.Generic.HashSet{PerseusApi.Network.INode}@)">
+            <summary>
+            Remove edges from the graph.
+            </summary>
+            <param name="edges"></param>
+            <param name="orphans">Orphaned nodes without any remaining edges.</param>
+        </member>
+        <member name="M:PerseusApi.Network.IGraph.Clone(System.Collections.Generic.Dictionary{PerseusApi.Network.INode,PerseusApi.Network.INode}@,System.Collections.Generic.Dictionary{PerseusApi.Network.IEdge,PerseusApi.Network.IEdge}@)">
+            <summary>
+            Clone the graph. Provides node and edge mapping.
+            </summary>
+            <param name="nodeMapping"></param>
+            <param name="edgeMapping"></param>
+            <returns></returns>
+        </member>
+        <member name="T:PerseusApi.Network.IIdentifiable">
+            <summary>
+            Identified by Guid. Used for graph, nodes and edges
+            </summary>
+        </member>
+        <member name="T:PerseusApi.Network.Identifiable">
+            <summary>
+            Identified by Guid
+            </summary>
+        </member>
+        <member name="P:PerseusApi.Network.Identifiable.Guid">
+            <summary>
+            Unique key
+            </summary>
+        </member>
+        <member name="T:PerseusApi.Network.INetworkActivity">
+            <summary>
+            Base interface for all network-specific activities
+            </summary>
+        </member>
+        <member name="T:PerseusApi.Network.INetworkAnalysis">
+            <summary>
+            Base interface for all network-specific analyses
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Network.INetworkAnalysis.AnalyzeData(PerseusApi.Network.INetworkData,BaseLibS.Param.Parameters,PerseusApi.Generic.ProcessInfo)">
+            <summary>
+            Run the analysis with the parameters specified in <see cref="M:PerseusApi.Network.INetworkAnalysis.GetParameters(PerseusApi.Network.INetworkData,System.String@)"/>.
+            </summary>
+            <param name="ndata"></param>
+            <param name="param"></param>
+            <param name="processInfo"></param>
+            <returns></returns>
+        </member>
+        <member name="M:PerseusApi.Network.INetworkAnalysis.GetParameters(PerseusApi.Network.INetworkData,System.String@)">
+            <summary>
+            Define here the parameters that determine the specifics of the analysis.
+            </summary>
+            <param name="ndata">The parameters might depend on the data matrix.</param>
+            <param name="errString">Set this to a value != null if an error occured. The error string will be displayed to the user.</param>
+            <returns>The set of parameters.</returns>
+        </member>
+        <member name="T:PerseusApi.Network.INetworkData">
+            <summary>
+            Network collection table interface
+            </summary>
+        </member>
+        <member name="P:PerseusApi.Network.INetworkData.Item(System.Int32)">
+            <summary>
+            Get network by index.
+            </summary>
+            <param name="i"></param>
+            <returns></returns>
+        </member>
+        <member name="M:PerseusApi.Network.INetworkData.AddNetworks(PerseusApi.Network.INetworkInfo[])">
+            <summary>
+            Add a network to the collection.
+            </summary>
+            <param name="networks"></param>
+        </member>
+        <member name="T:PerseusApi.Network.INetworkExport">
+            <summary>
+            Network export
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Network.INetworkExport.Export(BaseLibS.Param.Parameters,PerseusApi.Network.INetworkData,PerseusApi.Generic.ProcessInfo)">
+            <summary>
+            Export the network given the parameters from <see cref="M:PerseusApi.Network.INetworkExport.GetParameters(PerseusApi.Network.INetworkData,System.String@)"/>.
+            </summary>
+            <param name="parameters"></param>
+            <param name="ndata"></param>
+            <param name="processInfo"></param>
+        </member>
+        <member name="M:PerseusApi.Network.INetworkExport.GetParameters(PerseusApi.Network.INetworkData,System.String@)">
+            <summary>
+            Define here the parameters that determine the specifics of the export.
+            </summary>
+            <param name="ndata">The parameters might depend on the data matrix.</param>
+            <param name="errString">Set this to a value != null if an error occured. The error string will be displayed to the user.</param>
+            <returns>The set of parameters.</returns>
+        </member>
+        <member name="T:PerseusApi.Network.INetworkFromMatrix">
+            <summary>
+            Derive a network from a matrix
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Network.INetworkFromMatrix.ProcessData(PerseusApi.Matrix.IMatrixData,PerseusApi.Network.INetworkData,BaseLibS.Param.Parameters,PerseusApi.Generic.IData[]@,PerseusApi.Generic.ProcessInfo)">
+            <summary>
+            Create the network from the matrix input data and the parameters specified in <see cref="M:PerseusApi.Network.INetworkFromMatrix.GetParameters(PerseusApi.Matrix.IMatrixData,System.String@)"/>.
+            </summary>
+            <param name="inData"></param>
+            <param name="outData"></param>
+            <param name="param"></param>
+            <param name="supplData"></param>
+            <param name="processInfo"></param>
+        </member>
+        <member name="M:PerseusApi.Network.INetworkFromMatrix.GetParameters(PerseusApi.Matrix.IMatrixData,System.String@)">
+            <summary>
+            Define here the parameters that determine the specifics of the processing.
+            </summary>
+            <param name="mdata">The parameters might depend on the data matrix.</param>
+            <param name="errString">Set this to a value != null if an error occured. The error string will be displayed to the user.</param>
+            <returns>The set of parameters.</returns>
+        </member>
+        <member name="T:PerseusApi.Network.INetworkInfo">
+            <summary>
+            Network interface. See also <see cref="T:PerseusApi.Network.INetworkData"/> for a collection of networks.
+            </summary>
+        </member>
+        <member name="P:PerseusApi.Network.INetworkInfo.NodeTable">
+            <summary>
+            Node Table
+            </summary>
+        </member>
+        <member name="P:PerseusApi.Network.INetworkInfo.EdgeTable">
+            <summary>
+            Edge Table
+            </summary>
+        </member>
+        <member name="P:PerseusApi.Network.INetworkInfo.NodeIndex">
+            <summary>
+            Maps the node from the <see cref="P:PerseusApi.Network.INetworkInfo.Graph"/> to the corresponding row in the <see cref="P:PerseusApi.Network.INetworkInfo.NodeTable"/>.
+            </summary>
+        </member>
+        <member name="P:PerseusApi.Network.INetworkInfo.EdgeIndex">
+            <summary>
+            Maps the edge from the <see cref="P:PerseusApi.Network.INetworkInfo.Graph"/> to the corresponding row in the <see cref="P:PerseusApi.Network.INetworkInfo.EdgeTable"/>.
+            </summary>
+        </member>
+        <member name="P:PerseusApi.Network.INetworkInfo.Graph">
+            <summary>
+            Node-link graph
+            </summary>
+        </member>
+        <member name="P:PerseusApi.Network.INetworkInfo.Name">
+            <summary>
+            Network name
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Network.INetworkInfo.IsConsistent(System.String@)">
+            <summary>
+            Check if table and graph representation are consistent
+            </summary>
+            <param name="errString"></param>
+            <returns></returns>
+        </member>
+        <member name="T:PerseusApi.Network.INetworkMergeWithMatrix">
+            <summary>
+            Merge a network and a matrix
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Network.INetworkMergeWithMatrix.ProcessData(PerseusApi.Network.INetworkData,PerseusApi.Matrix.IMatrixData,BaseLibS.Param.Parameters,PerseusApi.Generic.IData[]@,PerseusApi.Generic.ProcessInfo)">
+            <summary>
+            Merge the input network with the provided matrix.
+            </summary>
+            <param name="data"></param>
+            <param name="inMatrix"></param>
+            <param name="param"></param>
+            <param name="supplData"></param>
+            <param name="processInfo"></param>
+            <returns></returns>
+        </member>
+        <member name="M:PerseusApi.Network.INetworkMergeWithMatrix.GetParameters(PerseusApi.Network.INetworkData,PerseusApi.Matrix.IMatrixData,System.String@)">
+            <summary>
+            Define here the parameters that determine the specifics of the processing.
+            </summary>
+            <param name="data">The parameters might depend on the data.</param>
+            <param name="inMatrix">and on the matrix as well.</param>
+            <param name="errString">Set this to a value != null if an error occured. The error string will be displayed to the user.</param>
+            <returns>The set of parameters.</returns>
+        </member>
+        <member name="T:PerseusApi.Network.INetworkMultiAnalysis">
+            <summary>
+            Analyze multiple network collections
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Network.INetworkMultiAnalysis.AnalyzeData(PerseusApi.Network.INetworkData[],BaseLibS.Param.Parameters,PerseusApi.Generic.ProcessInfo)">
+            <summary>
+            Analyze the network collection
+            </summary>
+            <param name="ndata"></param>
+            <param name="param"></param>
+            <param name="processInfo"></param>
+            <returns></returns>
+        </member>
+        <member name="M:PerseusApi.Network.INetworkMultiAnalysis.GetParameters(PerseusApi.Network.INetworkData[],System.String@)">
+            <summary>
+            Define here the parameters that determine the specifics of the analysis.
+            </summary>
+            <param name="ndata">The parameters might depend on the data matrix.</param>
+            <param name="errString">Set this to a value != null if an error occured. The error string will be displayed to the user.</param>
+            <returns>The set of parameters.</returns>
+        </member>
+        <member name="T:PerseusApi.Network.INetworkMultiProcessing">
+            <summary>
+            Process multiple network collections.
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Network.INetworkMultiProcessing.ProcessData(PerseusApi.Network.INetworkData[],BaseLibS.Param.Parameters,PerseusApi.Generic.IData[]@,PerseusApi.Generic.ProcessInfo)">
+            <summary>
+            Process multiple network collections.
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Network.INetworkMultiProcessing.GetParameters(PerseusApi.Network.INetworkData[],System.String@)">
+            <summary>
+            Define here the parameters that determine the specifics of the processing.
+            </summary>
+            <param name="inputData">The parameters might depend on the data matrices.</param>
+            <param name="errString">Set this to a value != null if an error occured. The error string will be displayed to the user.</param>
+            <returns>The set of parameters.</returns>
+        </member>
+        <member name="T:PerseusApi.Network.INetworkProcessing">
+            <summary>
+            Process a network.
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Network.INetworkProcessing.ProcessData(PerseusApi.Network.INetworkData,BaseLibS.Param.Parameters,PerseusApi.Generic.IData[]@,PerseusApi.Generic.ProcessInfo)">
+            <summary>
+            Process a network given the parameters specified in <see cref="M:PerseusApi.Network.INetworkProcessing.GetParameters(PerseusApi.Network.INetworkData,System.String@)"/>.
+            </summary>
+            <param name="ndata"></param>
+            <param name="param"></param>
+            <param name="supplData"></param>
+            <param name="processInfo"></param>
+        </member>
+        <member name="M:PerseusApi.Network.INetworkProcessing.GetParameters(PerseusApi.Network.INetworkData,System.String@)">
+            <summary>
+            Define here the parameters that determine the specifics of the processing.
+            </summary>
+            <param name="ndata">The parameters might depend on the data matrix.</param>
+            <param name="errString">Set this to a value != null if an error occured. The error string will be displayed to the user.</param>
+            <returns>The set of parameters.</returns>
+        </member>
+        <member name="T:PerseusApi.Network.INetworkToMatrix">
+            <summary>
+            Process a network collection into a matrix
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Network.INetworkToMatrix.ProcessData(PerseusApi.Network.INetworkData,PerseusApi.Matrix.IMatrixData,BaseLibS.Param.Parameters,PerseusApi.Generic.IData[]@,PerseusApi.Generic.ProcessInfo)">
+            <summary>
+            Process a network collection into a matrix
+            </summary>
+            <param name="inData"></param>
+            <param name="outData"></param>
+            <param name="param"></param>
+            <param name="supplData"></param>
+            <param name="processInfo"></param>
+        </member>
+        <member name="M:PerseusApi.Network.INetworkToMatrix.GetParameters(PerseusApi.Network.INetworkData,System.String@)">
+            <summary>
+            Define here the parameters that determine the specifics of the processing.
+            </summary>
+            <param name="mdata">The parameters might depend on the data matrix.</param>
+            <param name="errString">Set this to a value != null if an error occured. The error string will be displayed to the user.</param>
+            <returns>The set of parameters.</returns>
+        </member>
+        <member name="T:PerseusApi.Network.INetworkUpload">
+            <summary>
+            Load a network collection into Perseus
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Network.INetworkUpload.LoadData(PerseusApi.Network.INetworkData,BaseLibS.Param.Parameters,PerseusApi.Generic.IData[]@,PerseusApi.Generic.ProcessInfo)">
+            <summary>
+            Load a network collection into Perseus
+            </summary>
+            <param name="ndata"></param>
+            <param name="parameters"></param>
+            <param name="supplData"></param>
+            <param name="processInfo"></param>
+        </member>
+        <member name="T:PerseusApi.Network.INode">
+            <summary>
+            Graph node
+            </summary>
+        </member>
+        <member name="P:PerseusApi.Network.INode.InEdges">
+            <summary>
+            Incoming edges
+            </summary>
+        </member>
+        <member name="P:PerseusApi.Network.INode.OutEdges">
+            <summary>
+            Outgoing edges
+            </summary>
+        </member>
+        <member name="P:PerseusApi.Network.INode.Neighbors">
+            <summary>
+            Neighboring nodes
+            </summary>
+        </member>
+        <member name="P:PerseusApi.Network.INode.InDegree">
+            <summary>
+            Degree of incoming edges
+            </summary>
+        </member>
+        <member name="P:PerseusApi.Network.INode.OutDegree">
+            <summary>
+            Degree of outgoing edges
+            </summary>
+        </member>
+        <member name="T:PerseusApi.Utils.Network.FolderFormat">
+             <summary>
+             Default folder format for importing/exporting a network collection in Perseus without loss of information.
+            
+             The networks.txt table contains general information on all the networks in the collection.
+             Each network is represented by two tables, {guid}_nodes.txt and {guid}_edges.txt, which
+             are stored in the standard perseus matrix format.
+             </summary>
+        </member>
+        <member name="M:PerseusApi.Utils.Network.FolderFormat.GetStringColumn(PerseusApi.Generic.IDataWithAnnotationColumns,System.String)">
+            <summary>
+            Unsafe shortcut for obtaining a string column.
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Utils.Network.FolderFormat.Read(PerseusApi.Network.INetworkData,System.String,PerseusApi.Generic.ProcessInfo)">
+            <summary>
+            Read the network into an instance of <see cref="T:PerseusApi.Network.INetworkData"/>.
+            To create an empty network see <see cref="M:PerseusApi.Utils.PerseusFactory.CreateNetworkData"/>.
+            </summary>
+            <param name="ndata">Contains the parsed network after the function was run</param>
+            <param name="folder">Path to the directory where the network is stored</param>
+            <param name="processInfo"></param>
+        </member>
+        <member name="M:PerseusApi.Utils.Network.FolderFormat.Write(PerseusApi.Network.INetworkData,System.String)">
+            <summary>
+            Write the fiven network to the specified folder.
+            </summary>
+        </member>
+        <member name="T:PerseusApi.Utils.PerseusFactory">
+            <summary>
+            Factory class that provides static methods for creating instances of data items used in Perseus
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Utils.PerseusFactory.CreateMatrixData">
+            <summary>
+            Creates an empty default implementation of <see cref="T:PerseusApi.Matrix.IMatrixData"/>.
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Utils.PerseusFactory.CreateMatrixData(System.Double[0:,0:])">
+            <summary>
+            Create minimally initialized <see cref="T:PerseusApi.Matrix.IMatrixData"/>.
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Utils.PerseusFactory.CreateMatrixData(System.Double[0:,0:],System.Collections.Generic.List{System.String})">
+            <summary>
+            Create minimally initialized <see cref="T:PerseusApi.Matrix.IMatrixData"/>.
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Utils.PerseusFactory.CreateDocumentData">
+            <summary>
+            Creates an empty default implementation of <see cref="T:PerseusApi.Document.IDocumentData"/>.
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Utils.PerseusFactory.CreateNetworkData">
+            <summary>
+            Creates an empty default implementation of <see cref="T:PerseusApi.Network.INetworkData"/>.
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Utils.PerseusFactory.CreateNetworkInfo(PerseusApi.Network.IGraph,PerseusApi.Generic.IDataWithAnnotationColumns,System.Collections.Generic.Dictionary{PerseusApi.Network.INode,System.Int32},PerseusApi.Generic.IDataWithAnnotationColumns,System.Collections.Generic.Dictionary{PerseusApi.Network.IEdge,System.Int32},System.String,System.Guid)">
+            <summary>
+            Creates a default implementation of <see cref="T:PerseusApi.Network.INetworkInfo"/> from the given graph
+            and node/edge tables and indices.
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Utils.PerseusFactory.CreateGraph">
+            <summary>
+            Creates and default implementation of <see cref="T:PerseusApi.Network.IGraph"/> without nodes or edges.
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Utils.PerseusFactory.CreateGraph(System.Collections.Generic.IEnumerable{PerseusApi.Network.INode},System.Collections.Generic.IEnumerable{PerseusApi.Network.IEdge})">
+            <summary>
+            Creates an default implementation of <see cref="T:PerseusApi.Network.IGraph"/> from nodes and edges.
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Utils.PerseusFactory.CreateDataWithAnnotationColumns">
+            <summary>
+            Creates an empty default implementation of <see cref="T:PerseusApi.Generic.IDataWithAnnotationColumns"/>.
+            </summary>
+        </member>
+        <member name="M:PerseusApi.Utils.PerseusUtils.HasBadParameters(System.Int32[],System.Int32[],System.Int32[],System.Int32[],System.Int32[],PerseusApi.Generic.ProcessInfo,System.Collections.Generic.IList{System.String})">
+            <summary>
+            Check for duplicate column selections
+            </summary>
+        </member>
         <member name="M:PerseusApi.Utils.PerseusUtils.GetAvailableAnnots(System.String[]@,System.String[]@)">
             <summary>
             Search the annotation folder for annotations.
@@ -398,6 +901,13 @@
             <param name="files"></param>
             <param name="badFiles">List of files which could not be processed</param>
             <returns>A list of annotations for each file. For example <code>{{"Chromosome", "Orientation"},{"KEGG name", "Pfam"}}</code></returns>
+        </member>
+        <member name="M:PerseusApi.Utils.PerseusUtils.GetNumFilterParams(System.String[])">
+            <summary>
+            Create numeric filter parameters for each selection, consisting of a column selection, a relations and a combination parameter.
+            </summary>
+            <param name="selection"></param>
+            <returns></returns>
         </member>
         <member name="M:PerseusApi.Utils.PerseusUtils.WriteDataWithAnnotationColumns(PerseusApi.Generic.IDataWithAnnotationColumns,System.String)">
             <summary>
